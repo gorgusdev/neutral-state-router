@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"target": "es3",
+		"module": "commonjs",
+		"noImplicitAny": true,
+		"removeComments": true,
+		"sourceMap": true,
+		"declaration": true,
+		"outDir": "js/"
+	},
+	"files": [
+		"./typings/defs.d.ts",
+		"./src/index.ts",
+		"./__tests__/router-test.ts",
+		"./__debug__/debug.ts"
+	]
+}

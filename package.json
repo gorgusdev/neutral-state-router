@@ -1,0 +1,36 @@
+{
+  "name": "neutral-state-router",
+  "version": "0.1.0",
+  "description": "A framework neutral client-side URL to state router",
+  "main": "js/src/index.js",
+  "typings": "js/src/index.d.ts",
+  "jest": {
+    "testRunner": "<rootDir>/node_modules/jest-cli/src/testRunners/jasmine/jasmine2.js",
+    "collectCoverage": true
+  },
+  "scripts": {
+    "test": "jest && remap-istanbul -i coverage/coverage-final.json -o html-report -t html",
+    "test-watch": "jest --watch",
+    "typescript": "tsc",
+    "typescript-watch": "tsc -w index.ts",
+    "build": "npm run typescript"
+  },
+  "keywords": [
+    "router"
+  ],
+  "author": "Göran Gustafsson",
+  "license": "MIT",
+  "devDependencies": {
+    "jest-cli": "^0.8.2",
+    "parallelshell": "^2.0.0",
+    "remap-istanbul": "^0.5.1",
+    "source-map-loader": "^0.1.5",
+    "typescript": "^1.7.5"
+  },
+  "dependencies": {
+    "extend": "^3.0.0",
+    "path-to-regexp": "^1.2.1",
+    "query-string": "^3.0.0",
+    "urllite": "^0.5.0"
+  }
+}

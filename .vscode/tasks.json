@@ -1,0 +1,68 @@
+// Available variables which can be used inside of strings.
+// ${workspaceRoot}: the root folder of the team
+// ${file}: the current opened file
+// ${fileBasename}: the current opened file's basename
+// ${fileDirname}: the current opened file's dirname
+// ${fileExtname}: the current opened file's extension
+// ${cwd}: the current working directory of the spawned process
+
+// A task runner that calls scripts from the package.json file by using npm
+{
+	"version": "0.1.0",
+
+	"command": "npm",
+
+	"isShellCommand": true,
+
+	"showOutput": "always",
+
+	"echoCommand": true,
+	
+	"tasks": [
+		{
+			"taskName": "install",
+			"args": [
+				"install"
+			],
+			"showOutput": "always",
+			"suppressTaskName": true
+		},
+		{
+			"taskName": "build",
+			"args": [
+				"run",
+				"build"
+			],
+			"isBuildCommand": true,
+			"problemMatcher": ["$tsc", "$lessCompile"],
+			"suppressTaskName": true
+		},
+		{
+			"taskName": "test",
+			"args": [
+				"run",
+				"test"
+			],
+			"isTestCommand": true,
+			"suppressTaskName": true
+		},
+		{
+			"taskName": "watch",
+			"args": [
+				"run",
+				"watch"
+			],
+			"isWatching": true,
+			"problemMatcher": ["$lessCompile", "$tsc-watch"],
+			/*
+			"problemMatcher": ["$lessCompile", {
+				"base": "$tsc",
+				"watchedTaskBeginsRegExp": "^\\s*message TS6032: File change detected. Starting incremental compilation…",
+				"watchedTaskEndsRegExp": "^\\s*message TS6042: Compilation complete. Watching for file changes."
+			}],
+			*/
+			
+			"suppressTaskName": true
+		}
+	]
+}
