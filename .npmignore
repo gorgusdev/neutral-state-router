@@ -4,4 +4,3 @@ js/__tests__/*
 coverage
 html-report
 tsconfig.json
-*.js.map
