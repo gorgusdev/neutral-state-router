@@ -1,12 +1,12 @@
 {
   "name": "neutral-state-router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A framework neutral client-side URL to state router",
   "main": "js/src/index.js",
   "typings": "js/src/index.d.ts",
   "repository": {
-	  "type": "git",
-	  "url": "https://github.com/gorgusdev/neutral-state-router.git"
+    "type": "git",
+    "url": "https://github.com/gorgusdev/neutral-state-router.git"
   },
   "jest": {
     "testRunner": "<rootDir>/node_modules/jest-cli/src/testRunners/jasmine/jasmine2.js",
