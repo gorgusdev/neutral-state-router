@@ -125,13 +125,10 @@ export class Router {
 	}
 	
 	navigateTo(configPath: string, urlParams: RouterUrlParams, queryParams: RouterQueryParams): Thenable<RouterState> {
-		console.log('Navigate To');
 		var transitionIdSnapshot = this.beginNewTransition();
-		console.log('Before Promise - SeqId: ' + transitionIdSnapshot + ' | ' + this.transitionId)
 		return new Promise<RouterState>((resolve, reject) => {
 			var configPathParts: string[] = configPath.split('.');
 			this.findRouterConfigByName(configPathParts, 0, this.rootConfig, []).then((configs) => {
-				console.log('NavigateTo - SeqId: ' + transitionIdSnapshot + ' | ' + this.transitionId);
 				if(this.isTransitionCancelled(transitionIdSnapshot)) {
 					return;
 				}
@@ -208,9 +205,7 @@ export class Router {
 	private updateUrl = () => {
 		var url = this.history.getUrl();
 		var configPath = this.history.getConfigPath();
-		console.log('Update to URL: ' + url + ', ConfigPath: ' + configPath);
 		var transitionIdSnapshot = this.beginNewTransition();
-		console.log('Before Checks - SeqId: ' + transitionIdSnapshot + ' | ' + this.transitionId)
 		if(!url) {
 			if(this.urlMissingRouteCallback) {
 				this.urlMissingRouteCallback()
@@ -220,14 +215,12 @@ export class Router {
 		if((configPath === this.currentState.configPath) && (url === this.currentState.url)) {
 			return;
 		}
-		console.log('Before Promise - SeqId: ' + transitionIdSnapshot + ' | ' + this.transitionId)
 		var urlParts = urllite(url);
 		var queryParams: RouterUrlParams = urlParts.search ? queryString.parse(urlParts.search) : {};
 		var historyTrackId = this.history.getHistoryTrackId();
 		if(configPath) {
 			var configPathParts: string[] = configPath.split('.');
 			this.findRouterConfigByName(configPathParts, 0, this.rootConfig, []).then((configs) => {
-				console.log('UpdateUrl - SeqId: ' + transitionIdSnapshot + ' | ' + this.transitionId);
 				if(this.isTransitionCancelled(transitionIdSnapshot)) {
 					return;
 				}
@@ -240,7 +233,6 @@ export class Router {
 		} else {
 			var errorPath: string = null;
 			this.findRoutedConfigByUrl(this.rootConfig, [], urlParts.pathname, []).then((configMatch) => {
-				console.log('UpdateUrl - SeqId: ' + transitionIdSnapshot + ' | ' + this.transitionId);
 				if(this.isTransitionCancelled(transitionIdSnapshot)) {
 					return;
 				}
@@ -498,8 +490,6 @@ export class Router {
 	private buildRoutedConfigUrlMapping(config: RouterConfigInternal, url: string): boolean {
 		if(config.url && !config.unrouted) {
 			var pathTokens = pathToRegexp.parse(url);
-			console.log('Building config for: ' + url);
-			console.log(pathTokens);
 			config.pathRegExp = pathToRegexp.tokensToRegExp(pathTokens, {});
 			config.pathBuildFunc = pathToRegexp.tokensToFunction(pathTokens);
 			config.pathParams = [];
@@ -613,8 +603,8 @@ export class Router {
 	}
 	
 	private logError(error: any) {
-		if(console && console.log) {
-			console.log(error);
+		if(console && console.error) {
+			console.error(error);
 		}
 	}
 }

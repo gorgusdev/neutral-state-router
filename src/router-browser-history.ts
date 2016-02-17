@@ -170,9 +170,6 @@ export class RouterBrowserHistory implements RouterHistory {
 			if(newEntry.sessionTrackId === oldEntry.sessionTrackId) {
 				this.historyForwardEntries = this.historyBackEntries.slice(n + 1).concat(this.historyForwardEntries);
 				this.historyBackEntries.splice(n + 1, this.historyBackEntries.length - n);
-				console.log('History Entries');
-				console.log(this.historyBackEntries);
-				console.log(this.historyForwardEntries);
 				return;
 			}
 		}
@@ -181,9 +178,6 @@ export class RouterBrowserHistory implements RouterHistory {
 			if(newEntry.sessionTrackId === oldEntry.sessionTrackId) {
 				this.historyBackEntries = this.historyBackEntries.concat(this.historyForwardEntries.slice(0, n + 1));
 				this.historyForwardEntries.splice(0, n + 1);
-				console.log('History Entries');
-				console.log(this.historyBackEntries);
-				console.log(this.historyForwardEntries);
 				return;
 			}
 		}
@@ -202,9 +196,6 @@ export class RouterBrowserHistory implements RouterHistory {
 			}
 		}
 		this.historyForwardEntries = [];
-		console.log('History Entries');
-		console.log(this.historyBackEntries);
-		console.log(this.historyForwardEntries);
 	}
 	
 	private readPopState(): RouterHistoryEntry {
