@@ -44,7 +44,7 @@ export class Router {
 	private transitionCancel: TransitionCancelCallback;
 	private transitionEnd: TransitionEndCallback;
 	private running: boolean;
-	public rootConfig: RouterConfig;
+	protected rootConfig: RouterConfig;
 	
 	private currentState: RouterState;
 	private currentStateDatas: RouterStateData[];
@@ -73,6 +73,14 @@ export class Router {
 		this.buildRouterConfigUrlPrefix(this.rootConfig, '', true);
 	}
 	
+	getCurrentState(): RouterState {
+		return this.currentState;
+	}
+
+	isRunning(): boolean {
+		return this.running;
+	}
+		
 	addConfig(configPath: string, config: RouterConfig) {
 		var configPathParts: string[] = configPath.split('.');
 		var parentConfig: RouterConfig = this.rootConfig;
@@ -88,7 +96,7 @@ export class Router {
 			if(n === configPathParts.length - 1) {
 				break;
 			}
-			parentConfig = config;
+			parentConfig = currentConfig;
 		}
 		parentConfig.configs[configPathPart] = extend(true, currentConfig, config);
 		if(this.isRunning()) {
@@ -97,7 +105,7 @@ export class Router {
 	}
 	
 	start(history: RouterHistory, routeFoundCallback: RouteFoundCallback, routeNotFoundCallback?: RouteNotFoundCallback, urlMissingRouteCallback?: UrlMissingRouteCallback, transitionBegin?: TransitionBeginCallback, transitionCancel?: TransitionCancelCallback, transitionEnd?: TransitionEndCallback) {
-		if(this.running) {
+		if(this.isRunning()) {
 			throw new RouterException("Router already running");
 		}
 		this.history = history;
@@ -114,17 +122,16 @@ export class Router {
 	}
 	
 	stop() {
-		if(this.running) {
+		if(this.isRunning()) {
 			this.history.stopHistoryUpdates();
 		}
 		this.running = false;
 	}
 	
-	isRunning(): boolean {
-		return this.running;
-	}
-	
-	navigateTo(configPath: string, urlParams: RouterUrlParams, queryParams: RouterQueryParams): Thenable<RouterState> {
+	navigateTo(configPath: string, urlParams?: RouterUrlParams, queryParams?: RouterQueryParams): Thenable<RouterState> {
+		if(!this.isRunning()) {
+			throw new RouterException('Router is not running');
+		}
 		var transitionIdSnapshot = this.beginNewTransition();
 		return new Promise<RouterState>((resolve, reject) => {
 			var configPathParts: string[] = configPath.split('.');
@@ -136,6 +143,8 @@ export class Router {
 				if(newConfig.unrouted) {
 					throw new RouterNotFoundException('Unable to navigate to unrouted path: ' + configPath, configs);
 				}
+				urlParams = urlParams || {};
+				queryParams = queryParams || {};
 				var url = this.buildConfigStateUrl(configs, urlParams, queryParams);
 				this.history.navigateTo(configPath, url);
 				var historyTrackId = this.history.getHistoryTrackId();
@@ -203,6 +212,9 @@ export class Router {
 	}
 
 	private updateUrl = () => {
+		if(!this.isRunning()) {
+			return;
+		}
 		var url = this.history.getUrl();
 		var configPath = this.history.getConfigPath();
 		var transitionIdSnapshot = this.beginNewTransition();
