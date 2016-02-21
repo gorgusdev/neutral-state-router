@@ -439,7 +439,7 @@ export class Router {
 					config.routeExtended = true;
 					config.routeExtensionPromise = null;
 					if(configMap) {
-						config.configs = extend(true, config.configs, configMap);
+						config.configs = extend(true, config.configs || {}, configMap);
 						this.buildRouterConfigs();
 						resolve(config);
 					} else {
@@ -461,6 +461,7 @@ export class Router {
 	
 	private buildRouterMappingForConfig(config: RouterConfigInternal, urlPrefix: string): boolean {
 		var url = this.buildConfigUrl(urlPrefix, config.url);
+		config.configs = config.configs || {};
 		var hasRoutedSubConfig = config.routeExtensionCallback && !config.routeExtended;
 		for(var key in config.configs) {
 			var subConfig = config.configs[key];
