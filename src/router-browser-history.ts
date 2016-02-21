@@ -8,7 +8,7 @@ import { RouterHistory } from './router-history';
 interface RouterHistoryEntry {
 	configPath: string;
 	url?: string;
-	sessionTrackId: string;
+	historyTrackId: string;
 }
 
 interface RouterHistoryTrackingRoot {
@@ -24,6 +24,7 @@ export class RouterBrowserHistory implements RouterHistory {
 	private updateUrlCallback: () => void;
 	private urlPathPrefix: string;
 	private useHashMode: boolean;
+	private useHistoryAPI: boolean;
 	private useIFrameState: boolean;
 	private stateIFrameId: string;
 	private disposeHistoryEntryCallback: RouterHistoryDisposeCallback;
@@ -32,15 +33,19 @@ export class RouterBrowserHistory implements RouterHistory {
 	private historyBackEntries: RouterHistoryEntry[];
 	private historyForwardEntries: RouterHistoryEntry[];
 	
+	private suppressUpdateUrl: boolean;
+	
 	constructor(urlPathPrefix: string, useHashMode: boolean, useIFrameState: boolean, stateIFrameId?: string, disposeHistoryEntryCallback?: RouterHistoryDisposeCallback) {
 		this.urlPathPrefix = urlPathPrefix;
-		this.useHashMode = useHashMode;
+		this.useHistoryAPI = !useIFrameState && !!history.pushState && !!history.replaceState;
 		this.useIFrameState = useIFrameState;
+		this.useHashMode = useIFrameState || useHashMode || !this.useHistoryAPI;
 		this.stateIFrameId = stateIFrameId;
 		this.disposeHistoryEntryCallback = disposeHistoryEntryCallback;
 		this.currentHistoryEntry = null;
 		this.historyBackEntries = [];
 		this.historyForwardEntries = [];
+		this.suppressUpdateUrl = false;
 	}
 	
 	startHistoryUpdates(updateUrlCallback: () => void) {
@@ -50,7 +55,7 @@ export class RouterBrowserHistory implements RouterHistory {
 		}
 		if(this.useIFrameState) {
 			this.installEventListener(this.getStateIFrameElement(), 'load', this.updateUrlFromIFrameLoad);
-		} else {
+		} else if(this.useHistoryAPI) {
 			this.installEventListener(window, 'popstate', this.updateUrlFromPopState);
 		}
 		this.installEventListener(window, 'hashchange', this.updateUrlFromHashChange);
@@ -60,7 +65,7 @@ export class RouterBrowserHistory implements RouterHistory {
 		this.uninstallEventListener(window, 'hashchange', this.updateUrlFromHashChange);
 		if(this.useIFrameState) {
 			this.uninstallEventListener(this.getStateIFrameElement(), 'load', this.updateUrlFromIFrameLoad);
-		} else {
+		} else if(this.useHistoryAPI) {
 			this.uninstallEventListener(window, 'popstate', this.updateUrlFromPopState);
 		}
 		this.updateUrlCallback = null;
@@ -69,8 +74,10 @@ export class RouterBrowserHistory implements RouterHistory {
 	init() {
 		if(this.useIFrameState) {
 			this.updateUrlFromIFrameLoad();
-		} else {
+		} else if(this.useHistoryAPI) {
 			this.updateUrlFromPopState();
+		} else {
+			this.updateUrlFromHashChange();
 		}
 	}
 	
@@ -78,20 +85,24 @@ export class RouterBrowserHistory implements RouterHistory {
 		var entry = this.createHistoryState(configPath, url);
 		if(this.useIFrameState) {
 			this.writeStateIFrame(entry);
-		} else {
+			location.replace('#' + entry.url);
+		} else if(this.useHistoryAPI) {
 			this.writePopState(entry);
+			this.updateHistoryEntries(entry);
+		} else {
+			this.currentHistoryEntry = entry;
+			location.hash = '#' + entry.url;
 		}
-		this.updateHistoryEntries(entry);
 	}
 	
 	getUrl(): string {
-		if(this.useIFrameState || this.useHashMode) {
+		if(this.useHashMode) {
 			if((this.urlPathPrefix && (location.pathname !== this.urlPathPrefix)) || !location.hash || (location.hash.length < 2)) {
 				return null;
 			}
 			return location.hash.substring(1);
 		} else {
-			if(this.urlPathPrefix && (location.pathname.substring(0, this.urlPathPrefix.length) !== this.urlPathPrefix + '/')) {
+			if(this.urlPathPrefix && (location.pathname.substring(0, this.urlPathPrefix.length + 1) !== this.urlPathPrefix + '/')) {
 				return null;
 			}
 			return location.pathname.substring(this.urlPathPrefix ? this.urlPathPrefix.length : 0);
@@ -108,28 +119,36 @@ export class RouterBrowserHistory implements RouterHistory {
 	
 	getHistoryTrackId(): string {
 		if(this.currentHistoryEntry) {
-			return this.currentHistoryEntry.sessionTrackId;
+			return this.currentHistoryEntry.historyTrackId;
 		} else {
 			return null;
 		}
 	}
 	
 	private updateUrlFromHashChange = () => {
-		if(this.currentHistoryEntry && (this.currentHistoryEntry.url === this.getUrl())) {
-			return;
-		}
 		if(this.useIFrameState) {
-			var url = this.getUrl();
-			var entry: RouterHistoryEntry = null;
-			if(url) {
+			var entry: RouterHistoryEntry = this.readStateIFrame();
+			if(entry) {
+				var url = this.getUrl();
+				if(url !== entry.url) {
+					entry = this.createHistoryState(null, url);
+					this.writeStateIFrame(entry);
+				}
+			} else {
 				entry = this.createHistoryState(null, url);
 				this.writeStateIFrame(entry);
 			}
-			this.updateHistoryEntries(entry);
-			this.updateUrlCallback();
-		} else {
+		} else if(this.useHistoryAPI) {
 			this.updateUrlFromPopState();
+		} else {
+			var url = this.getUrl();
+			if(!this.currentHistoryEntry || (this.currentHistoryEntry.url !== url)) {
+				this.currentHistoryEntry = null;
+				this.updateUrlCallback();
+			}
 		}
+		
+		return false;
 	};
 	
 	private updateUrlFromPopState = () => {
@@ -149,6 +168,10 @@ export class RouterBrowserHistory implements RouterHistory {
 		var entry = this.readStateIFrame();
 		if(entry) {
 			location.replace('#' + entry.url);
+			this.updateHistoryEntries(entry);
+			if(!this.suppressUpdateUrl) {
+				this.updateUrlCallback();
+			}
 		} else {
 			var url = this.getUrl();
 			if(url) {
@@ -156,18 +179,16 @@ export class RouterBrowserHistory implements RouterHistory {
 				this.writeStateIFrame(entry);
 			}
 		}
-		this.updateHistoryEntries(entry);
-		this.updateUrlCallback();
 	};
 	
 	private updateHistoryEntries(newEntry: RouterHistoryEntry) {
 		this.currentHistoryEntry = newEntry;
-		if(!newEntry) {
+		if(!newEntry || !newEntry.historyTrackId) {
 			return;
 		}
 		for(var n = this.historyBackEntries.length - 1; n >= 0; n--) {
 			var oldEntry = this.historyBackEntries[n];
-			if(newEntry.sessionTrackId === oldEntry.sessionTrackId) {
+			if(newEntry.historyTrackId === oldEntry.historyTrackId) {
 				this.historyForwardEntries = this.historyBackEntries.slice(n + 1).concat(this.historyForwardEntries);
 				this.historyBackEntries.splice(n + 1, this.historyBackEntries.length - n);
 				return;
@@ -175,7 +196,7 @@ export class RouterBrowserHistory implements RouterHistory {
 		}
 		for(var n = 0; n < this.historyForwardEntries.length; n++) {
 			var oldEntry = this.historyForwardEntries[n];
-			if(newEntry.sessionTrackId === oldEntry.sessionTrackId) {
+			if(newEntry.historyTrackId === oldEntry.historyTrackId) {
 				this.historyBackEntries = this.historyBackEntries.concat(this.historyForwardEntries.slice(0, n + 1));
 				this.historyForwardEntries.splice(0, n + 1);
 				return;
@@ -186,13 +207,13 @@ export class RouterBrowserHistory implements RouterHistory {
 		if(this.historyBackEntries.length > 50) {
 			var oldEntry = this.historyBackEntries.shift();
 			if(this.disposeHistoryEntryCallback) {
-				this.disposeHistoryEntryCallback(oldEntry.sessionTrackId);
+				this.disposeHistoryEntryCallback(oldEntry.historyTrackId);
 			}
 		}
 		for(var n = 0; n < this.historyForwardEntries.length; n++) {
 			var oldEntry = this.historyForwardEntries[n];
 			if(this.disposeHistoryEntryCallback) {
-				this.disposeHistoryEntryCallback(oldEntry.sessionTrackId);
+				this.disposeHistoryEntryCallback(oldEntry.historyTrackId);
 			}
 		}
 		this.historyForwardEntries = [];
@@ -242,11 +263,15 @@ export class RouterBrowserHistory implements RouterHistory {
 		var ifrm: any = this.getStateIFrameElement();
 		var frameDoc: Document = ifrm.contentDocument ? ifrm.contentDocument : ifrm.contentWindow.document;
 		if(frameDoc) {
-			frameDoc.open();
-			frameDoc.write('<html><body id="historyEntry">' + JSON.stringify(entry) + '</body></html>');
-			frameDoc.close();
+			this.suppressUpdateUrl = true;
+			try {
+				frameDoc.open();
+				frameDoc.write('<html><body id="historyEntry">' + JSON.stringify(entry) + '</body></html>');
+				frameDoc.close();
+			} finally {
+				this.suppressUpdateUrl = false;
+			}
 		}
-		location.replace('#' + entry.url);
 	}
 	
 	private installEventListener(elem: EventTarget, type: string, listener: (event: any) => void) {
@@ -269,12 +294,15 @@ export class RouterBrowserHistory implements RouterHistory {
 		var entry: RouterHistoryEntry = {
 			configPath: configPath,
 			url: url,
-			sessionTrackId: this.generateHistoryTrackId()
+			historyTrackId: this.generateHistoryTrackId()
 		}
 		return entry;
 	}
 	
 	private generateHistoryTrackId(): string {
+		if(!sessionStorage || (!this.useHistoryAPI && !this.useIFrameState)) {
+			return null;
+		}
 		var trackRoot: RouterHistoryTrackingRoot = null;
 		var json = sessionStorage.getItem('routerHistoryTrackRoot');
 		if(json) {
@@ -289,7 +317,7 @@ export class RouterBrowserHistory implements RouterHistory {
 		trackRoot.nextTrackId = trackRoot.nextTrackId + 1;
 		sessionStorage.setItem('routerHistoryTrackRoot', JSON.stringify(trackRoot));
 		
-		return '' + trackId;
+		return 'routerHistoryTrack' + trackId;
 	}
 	
 }
