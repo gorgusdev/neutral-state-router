@@ -17,6 +17,10 @@ export class RouterMemoryHistory implements RouterHistory {
 		
 	}
 	
+	reloadAtUrl(url: string) {
+		
+	}
+	
 	navigateTo(configPath: string, url: string) {
 		
 	}

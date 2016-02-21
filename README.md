@@ -31,7 +31,9 @@ Each state has an optional URL path that will be prepended to any URL path of it
 Naturally only states with an URL can be activated as the result of an URL change. States with
 and without URLs can be activated programmatically by using a dot separated path of names so
 long as the state is not flagged as `unrouted`. A state flagged as `unrouted` can never become
-the active state even if it has an URL.
+the active state even if it has an URL. A state with an URL and flagged as `reloadable` but
+**not** `unrouted` can trigger a full page reload when it's activated. The page reload has to
+be requested before activation by a call to the `requestReload` method on the router.
 
 The URL will be processed with the path-to-regexp module to handle any path parameters. Any valid
 syntax for URLs from the documentation of path-to-regexp should work
@@ -44,10 +46,10 @@ state can't be found for a state and that state has a `routeExtensionCallback` t
 be used to provide an object that will be merged into `configs` of the state. The callback will
 only be called once and it has to return a promise or promise like object.
 
-When matching to an URL the list might be only a prefix match of the full URL. In that case the
-router will search backwards in the list for a state with an `errorPath` value. The activated
-state will then become the state identified by the dot separated path from `errorPath` but the
-URL will remain unchanged.
+When matching to an URL the list of matched states might be only a prefix match of the full URL.
+In that case the router will search backwards in the list for a state with an `errorPath` value.
+The activated state will then become the state identified by the dot separated path from `errorPath`
+but the URL will remain unchanged.
 
 Once a list of matched states have been found the router will iterate through the list from first
 to last matched state. The data object from each state will be merged into a single data object
@@ -96,6 +98,7 @@ that doesn't exist will be created as empty states.
 interface RouterConfig {
 	url?: string;
 	unrouted?: boolean;
+	reloadable?: boolean;
 	errorPath?: string;
 	data?: RouterStateData;
 	configs?: RouterConfigMap;
@@ -129,6 +132,9 @@ valid here too.
 
 - **unrouted** If set to true, this state can't be reached by an URL or by programmatic navigation. The state will
 only be usable as a parent state to add data values.
+
+- **reloadable** If set to true the router can do a full page reload when activating this state. The reload will
+only occur if the `requestReload` method has been called before and the state is not unrouted and has an URL.
 
 - **errorPath** A path to a state to activate when a sub state of this state can't be located. This will only
 happen as the result of an URL change.
@@ -250,6 +256,14 @@ stop()
 
 Call this method to stop the router from reacting to any URL changes or programmatic activations.
  
+### Get Current State
+
+```javascript
+getCurrentState(): RouterState
+```
+
+Call this method to get the currently active router state.
+
 ### Is Running
 
 ```javascript
@@ -257,6 +271,12 @@ isRunning(): boolean
 ```
 
 Check if the router is running by calling this method.
+
+### Request Reload
+
+```javascript
+requestReload(): boolean
+```
 
 ### Navigate To
 
@@ -272,6 +292,14 @@ activate. If the URL of the state to activate has any parameters they will be fi
 The method will return a promise object that will resolve with the new router state object if the
 requested activation succeeds. Otherwise it will reject with a router exception. All the usual
 callbacks will also be called as expected.
+
+## TODO
+
+This is still a work in progress. Here are some of the things that needs to be done:
+
+- Test the use of non-hash URLs
+- More unit tests
+- More documentation and examples
 
 - - -
 

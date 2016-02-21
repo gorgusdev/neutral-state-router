@@ -47,6 +47,7 @@ export interface TeardownCallback {
 export interface RouterConfig {
 	url?: string;
 	unrouted?: boolean;
+	reloadable?: boolean;
 	errorPath?: string;
 	data?: RouterStateData;
 	configs?: RouterConfigMap;

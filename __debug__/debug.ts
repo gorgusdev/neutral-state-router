@@ -23,6 +23,7 @@ router.addConfig('a', {
 			configs: {
 				c1: {
 					url: '/c1',
+					reloadable: true,
 					data: {
 						level: 'third'
 					}
@@ -73,7 +74,7 @@ router.addConfig('a', {
 
 var msgElem: any = document.getElementById('content');
 var msgProp = ('innerText' in msgElem) ? 'innerText' : 'textContent';
-var hist: any = new RouterBrowserHistory('', true, false /*!!(<any>window).useIFrameState*/, 'historyState');
+var hist: any = new RouterBrowserHistory('', true, !!(<any>window).useIFrameState, 'historyState');
 router.start(hist, (state) => {
 	console.log('Found State');
 	console.log(state);
@@ -161,6 +162,20 @@ if(elem.addEventListener) {
 	(<any>elem).attachEvent('onclick', (event: any) => {
 		event.returnValue = false;
 		router.navigateTo('a.b2.c1', {}, {});
+		return false;
+	});	
+}
+
+var elem = document.getElementById('reqReload');
+if(elem.addEventListener) {
+	elem.addEventListener('click', (event) => {
+		event.preventDefault();
+		router.requestReload();
+	});
+} else {
+	(<any>elem).attachEvent('onclick', (event: any) => {
+		event.returnValue = false;
+		router.requestReload();
 		return false;
 	});	
 }

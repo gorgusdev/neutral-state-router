@@ -8,6 +8,7 @@ export interface RouterHistory {
 	
 	init(): void;
 	
+	reloadAtUrl(url: string): void;
 	navigateTo(configPath: string, url: string): void;
 	
 	getUrl(): string;

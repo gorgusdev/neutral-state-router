@@ -37,7 +37,7 @@ export class RouterBrowserHistory implements RouterHistory {
 	
 	constructor(urlPathPrefix: string, useHashMode: boolean, useIFrameState: boolean, stateIFrameId?: string, disposeHistoryEntryCallback?: RouterHistoryDisposeCallback) {
 		this.urlPathPrefix = urlPathPrefix;
-		this.useHistoryAPI = !useIFrameState && !!history.pushState && !!history.replaceState;
+		this.useHistoryAPI = !!history.pushState && !!history.replaceState;
 		this.useIFrameState = useIFrameState;
 		this.useHashMode = useIFrameState || useHashMode || !this.useHistoryAPI;
 		this.stateIFrameId = stateIFrameId;
@@ -52,6 +52,12 @@ export class RouterBrowserHistory implements RouterHistory {
 		this.updateUrlCallback = updateUrlCallback;
 		if(!this.updateUrlCallback) {
 			throw "Unable to start history updates with null callback";
+		}
+		if(this.useIFrameState) {
+			var stateIFrame = this.getStateIFrameElement();
+			if(!stateIFrame) {
+				this.useIFrameState = false;
+			}
 		}
 		if(this.useIFrameState) {
 			this.installEventListener(this.getStateIFrameElement(), 'load', this.updateUrlFromIFrameLoad);
@@ -78,6 +84,16 @@ export class RouterBrowserHistory implements RouterHistory {
 			this.updateUrlFromPopState();
 		} else {
 			this.updateUrlFromHashChange();
+		}
+	}
+	
+	reloadAtUrl(url: string) {
+		if(this.useHashMode) {
+			location.hash = '#' + url;
+			location.reload(true);
+		} else {
+			location.pathname = this.urlPathPrefix + url;
+			location.reload(true);
 		}
 	}
 	

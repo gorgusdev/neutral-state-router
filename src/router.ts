@@ -46,6 +46,8 @@ export class Router {
 	private running: boolean;
 	protected rootConfig: RouterConfig;
 	
+	private pendingReload: boolean;
+	
 	private currentState: RouterState;
 	private currentStateDatas: RouterStateData[];
 	private currentConfigs: RouterConfig[];
@@ -80,7 +82,11 @@ export class Router {
 	isRunning(): boolean {
 		return this.running;
 	}
-		
+	
+	requestReload() {
+		this.pendingReload = true;
+	}
+	
 	addConfig(configPath: string, config: RouterConfig) {
 		var configPathParts: string[] = configPath.split('.');
 		var parentConfig: RouterConfig = this.rootConfig;
@@ -146,6 +152,9 @@ export class Router {
 				urlParams = urlParams || {};
 				queryParams = queryParams || {};
 				var url = this.buildConfigStateUrl(configs, urlParams, queryParams);
+				if(this.pendingReload && newConfig.url && newConfig.reloadable) {
+					this.history.reloadAtUrl(url);
+				}
 				this.history.navigateTo(configPath, url);
 				var historyTrackId = this.history.getHistoryTrackId();
 				this.updateState(configPath, url, urlParams, queryParams, historyTrackId, configs);
@@ -259,6 +268,9 @@ export class Router {
 					}
 				}
 				var newConfig: RouterConfigInternal = configMatch.configMatches[configMatch.configMatches.length - 1];
+				if(this.pendingReload && newConfig.url && newConfig.reloadable) {
+					this.history.reloadAtUrl(url);
+				}
 				var urlParams: RouterUrlParams = this.buildUrlParams(newConfig.pathParams, configMatch.pathMatches);
 				this.updateState(configMatch.configPath, url, urlParams, queryParams, historyTrackId, configMatch.configMatches);
 				if(this.routeFoundCallback) {
@@ -285,6 +297,9 @@ export class Router {
 		var newConfig: RouterConfigInternal = configs[configs.length - 1];
 		if(newConfig.unrouted) {
 			throw new RouterNotFoundException('Unable to change to unrouted path: ' + configPath, configs);
+		}
+		if(this.pendingReload && newConfig.url && newConfig.reloadable) {
+			this.history.reloadAtUrl(url);
 		}
 		var urlParams: RouterUrlParams = this.findAndBuildUrlParams(url, configs);
 		this.updateState(configPath, url, urlParams, queryParams, historyTrackId, configs);
