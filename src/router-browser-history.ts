@@ -46,6 +46,9 @@ export class RouterBrowserHistory implements RouterHistory {
 		this.historyBackEntries = [];
 		this.historyForwardEntries = [];
 		this.suppressUpdateUrl = false;
+		if(!this.useHashMode && this.urlPathPrefix && (this.urlPathPrefix.charAt(this.urlPathPrefix.length - 1) === '/')) {
+			this.urlPathPrefix = this.urlPathPrefix.substring(0, this.urlPathPrefix.length - 1);
+		}
 	}
 	
 	startHistoryUpdates(updateUrlCallback: () => void) {
@@ -124,7 +127,7 @@ export class RouterBrowserHistory implements RouterHistory {
 			return location.pathname.substring(this.urlPathPrefix ? this.urlPathPrefix.length : 0);
 		}
 	}
-	
+
 	getConfigPath(): string {
 		if(this.currentHistoryEntry) {
 			return this.currentHistoryEntry.configPath;
@@ -151,20 +154,23 @@ export class RouterBrowserHistory implements RouterHistory {
 					this.writeStateIFrame(entry);
 				}
 			} else {
-				entry = this.createHistoryState(null, url);
-				this.writeStateIFrame(entry);
+				var url = this.getUrl();
+				if(url) {
+					entry = this.createHistoryState(null, url);
+					this.writeStateIFrame(entry);
+				}
 			}
 		} else if(this.useHistoryAPI) {
 			this.updateUrlFromPopState();
 		} else {
 			var url = this.getUrl();
-			if(!this.currentHistoryEntry || (this.currentHistoryEntry.url !== url)) {
-				this.currentHistoryEntry = null;
-				this.updateUrlCallback();
+			if(url) {
+				if(!this.currentHistoryEntry || (this.currentHistoryEntry.url !== url)) {
+					this.currentHistoryEntry = null;
+					this.updateUrlCallback();
+				}
 			}
 		}
-		
-		return false;
 	};
 	
 	private updateUrlFromPopState = () => {
@@ -193,6 +199,8 @@ export class RouterBrowserHistory implements RouterHistory {
 			if(url) {
 				entry = this.createHistoryState(null, url);
 				this.writeStateIFrame(entry);
+			} else {
+				this.updateUrlCallback();
 			}
 		}
 	};
@@ -246,6 +254,8 @@ export class RouterBrowserHistory implements RouterHistory {
 		var url = entry.url;
 		if(this.useHashMode) {
 			url = '#' + url;
+		} else {
+			url = this.urlPathPrefix + url;
 		}
 		history.pushState(entry, '', url);
 	}
