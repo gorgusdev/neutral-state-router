@@ -36,7 +36,7 @@ export class RouterBrowserHistory implements RouterHistory {
 	private suppressUpdateUrl: boolean;
 	
 	constructor(urlPathPrefix: string, useHashMode: boolean, useIFrameState: boolean, stateIFrameId?: string, disposeHistoryEntryCallback?: RouterHistoryDisposeCallback) {
-		this.urlPathPrefix = urlPathPrefix;
+		this.urlPathPrefix = urlPathPrefix || '';
 		this.useHistoryAPI = !!history.pushState && !!history.replaceState;
 		this.useIFrameState = useIFrameState;
 		this.useHashMode = useIFrameState || useHashMode || !this.useHistoryAPI;
@@ -92,7 +92,7 @@ export class RouterBrowserHistory implements RouterHistory {
 	
 	reloadAtUrl(url: string) {
 		if(this.useHashMode) {
-			location.hash = '#' + url;
+			location.hash = this.buildFullHashUrl(url);
 			location.reload(true);
 		} else {
 			location.pathname = this.urlPathPrefix + url;
@@ -104,13 +104,13 @@ export class RouterBrowserHistory implements RouterHistory {
 		var entry = this.createHistoryState(configPath, url);
 		if(this.useIFrameState) {
 			this.writeStateIFrame(entry);
-			location.replace('#' + entry.url);
+			location.replace(this.buildFullHashUrl(entry.url));
 		} else if(this.useHistoryAPI) {
 			this.writePopState(entry);
 			this.updateHistoryEntries(entry);
 		} else {
 			this.currentHistoryEntry = entry;
-			location.hash = '#' + entry.url;
+			location.hash = this.buildFullHashUrl(entry.url);
 		}
 	}
 	
@@ -128,6 +128,24 @@ export class RouterBrowserHistory implements RouterHistory {
 		}
 	}
 
+	private getUrlFromOtherMode() {
+		if(this.useHashMode) {
+			var prefix = this.urlPathPrefix;
+			if(prefix && (prefix.charAt(prefix.length - 1) === '/')) {
+				prefix = prefix.substring(0, prefix.length - 1);
+			}
+			if(prefix && (location.pathname.substring(0, prefix.length + 1) !== prefix + '/')) {
+				return null;
+			}
+			return location.pathname.substring(prefix ? prefix.length : 0);
+		} else {
+			if((this.urlPathPrefix && (location.pathname !== this.urlPathPrefix) && (location.pathname !== this.urlPathPrefix + '/')) || !location.hash || (location.hash.length < 2)) {
+				return null;
+			}
+			return location.hash.substring(1);
+		}
+	}
+		
 	getConfigPath(): string {
 		if(this.currentHistoryEntry) {
 			return this.currentHistoryEntry.configPath;
@@ -155,6 +173,9 @@ export class RouterBrowserHistory implements RouterHistory {
 				}
 			} else {
 				var url = this.getUrl();
+				if(!url) {
+					url = this.getUrlFromOtherMode();
+				}
 				if(url) {
 					entry = this.createHistoryState(null, url);
 					this.writeStateIFrame(entry);
@@ -169,6 +190,9 @@ export class RouterBrowserHistory implements RouterHistory {
 					this.currentHistoryEntry = null;
 					this.updateUrlCallback();
 				}
+			} else {
+				url = this.getUrlFromOtherMode();
+				location.replace(this.buildFullHashUrl(url));
 			}
 		}
 	};
@@ -177,6 +201,9 @@ export class RouterBrowserHistory implements RouterHistory {
 		var entry = this.readPopState();
 		if(!entry) {
 			var url = this.getUrl();
+			if(!url || ((url === '/') && location.hash)) {
+				url = this.getUrlFromOtherMode();
+			}
 			if(url) {
 				entry = this.createHistoryState(null, url);
 				this.rewritePopState(entry);
@@ -189,13 +216,16 @@ export class RouterBrowserHistory implements RouterHistory {
 	private updateUrlFromIFrameLoad = () => {
 		var entry = this.readStateIFrame();
 		if(entry) {
-			location.replace('#' + entry.url);
+			location.replace(this.buildFullHashUrl(entry.url));
 			this.updateHistoryEntries(entry);
 			if(!this.suppressUpdateUrl) {
 				this.updateUrlCallback();
 			}
 		} else {
 			var url = this.getUrl();
+			if(!url) {
+				url = this.getUrlFromOtherMode();
+			}
 			if(url) {
 				entry = this.createHistoryState(null, url);
 				this.writeStateIFrame(entry);
@@ -253,7 +283,7 @@ export class RouterBrowserHistory implements RouterHistory {
 	private writePopState(entry: RouterHistoryEntry) {
 		var url = entry.url;
 		if(this.useHashMode) {
-			url = '#' + url;
+			url = this.buildFullHashUrl(url);
 		} else {
 			url = this.urlPathPrefix + url;
 		}
@@ -263,7 +293,9 @@ export class RouterBrowserHistory implements RouterHistory {
 	private rewritePopState(entry: RouterHistoryEntry) {
 		var url = entry.url;
 		if(this.useHashMode) {
-			url = '#' + url;
+			url = this.buildFullHashUrl(url);
+		} else {
+			url = this.urlPathPrefix + url;
 		}
 		history.replaceState(entry, '', url);
 	}
@@ -345,5 +377,9 @@ export class RouterBrowserHistory implements RouterHistory {
 		
 		return 'routerHistoryTrack' + trackId;
 	}
-	
+
+	private buildFullHashUrl(url: string): string {
+		return (this.urlPathPrefix ? this.urlPathPrefix : '/') + '#' + url;
+	}
+
 }
