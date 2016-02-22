@@ -27,7 +27,6 @@
   "license": "MIT",
   "devDependencies": {
     "jest-cli": "^0.8.2",
-    "parallelshell": "^2.0.0",
     "remap-istanbul": "^0.5.1",
     "source-map-loader": "^0.1.5",
     "typescript": "^1.7.5"
