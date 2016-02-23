@@ -17,7 +17,8 @@ router.addConfig('a', {
 		b1: {
 			url: '/b1',
 			data: {
-				level: 'second'
+				level: 'second',
+				'+acc': 'b1acc'
 			},
 			unrouted: true,
 			configs: {
@@ -25,18 +26,21 @@ router.addConfig('a', {
 					url: '/c1',
 					reloadable: true,
 					data: {
-						level: 'third'
+						level: 'third',
+						'+acc': 'c1acc'
 					}
 				},
 				c2: {
 					url: '/c2',
 					data: {
-						level: 'third'
+						level: 'third',
+						'+acc': ['c2acc1', 'c2acc2']
 					}
 				},
 				c3: {
 					data: {
-						level: 'third'
+						level: 'third',
+						'+acc': [['c3acc']]
 					},
 				},
 				c4: {
@@ -114,12 +118,12 @@ var elem = document.getElementById('b1c2');
 if(elem.addEventListener) {
 	elem.addEventListener('click', (event) => {
 		event.preventDefault();
-		router.navigateTo('a.b1.c2', {}, {});
+		router.navigateTo('a.b1.c2', {}, { hello: 'world' });
 	});
 } else {
 	(<any>elem).attachEvent('onclick', (event: any) => {
 		event.returnValue = false;
-		router.navigateTo('a.b1.c2', {}, {});
+		router.navigateTo('a.b1.c2', {}, { hello: 'world' });
 		return false;
 	});	
 }

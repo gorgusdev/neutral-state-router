@@ -63,6 +63,13 @@ data object for it.
 - Any states that are only in the current state will have the `teardownCallback` called on the
 data object to allow for any sort of clean up of the data object.
 
+For any keys in the data object that begins with a plus (+) the values are accumulated into an
+array from any matched states that have the key in its data object (after `refreshCallback` or
+`setupCallback` was called). If the value to accumulate into the array is an array it's
+concatenated at the end of the accumulated array otherwise the value is simply pushed. When
+all matched states have been processed the accumulated arrays are added to the final data object
+with their respective keys without the initial plus (+) character.
+
 ### History
 
 To detect changed URLs and to update the current URL on programmtic state activation the router

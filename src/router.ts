@@ -34,6 +34,10 @@ interface RouterConfigMatch {
 	prefixMatch: boolean;
 }
 
+interface RouterAccumulatedPropMap {
+	[name: string]: any[];
+}
+
 export class Router {
 
 	private history: RouterHistory;
@@ -220,7 +224,7 @@ export class Router {
 		return '/';
 	}
 
-	private updateUrl = () => {
+	protected updateUrl = () => {
 		if(!this.isRunning()) {
 			return;
 		}
@@ -365,7 +369,6 @@ export class Router {
 						this.extendRouterConfig(configPathParts, parentConfig).then((config) => {
 							resolve(this.findRouterConfigByName(configPathParts, n, config, configs));
 						}).then(undefined, (error) => {
-							this.logError(error);
 							reject(error);
 						});
 					} else {
@@ -388,6 +391,8 @@ export class Router {
 					if(config.routeExtensionCallback && !config.routeExtended) {
 						this.extendRouterConfig(configPath, config).then((extConfig) => {
 							resolve(this.findRoutedConfigByUrl(extConfig, configPath, url, configs));
+						}).then(undefined, (error) => {
+							reject(error);
 						});
 						return;
 					}
@@ -461,7 +466,6 @@ export class Router {
 						reject(new RouterException('Router extension in "' + configPath.join('.') + '" did not return a config map'));
 					}
 				}).then(undefined, (error) => {
-					this.logError(error);
 					config.routeExtensionPromise = null;
 					reject(error);
 				});
@@ -552,7 +556,6 @@ export class Router {
 	}
 
 	private fireRouteNotFoundCallback(error: any, configPath: string, url: string, urlParams: RouterUrlParams, queryParams: RouterQueryParams) {
-		this.logError(error);
 		if(this.routeNotFoundCallback) {
 			var partialState: RouterState = null;
 			var matchedConfigs: RouterConfig[] = null;
@@ -560,6 +563,8 @@ export class Router {
 				matchedConfigs = (<RouterNotFoundException>error).matched;
 			}
 			this.routeNotFoundCallback(configPath, url, matchedConfigs, error);
+		} else {
+			this.logError(error);
 		}
 	}
 	
@@ -588,6 +593,7 @@ export class Router {
 			data: {}
 		}
 		var newStateDatas: RouterStateData[] = [];
+		var accumulatedDataProps: RouterAccumulatedPropMap = {};
 		var prefixLength = this.findCommonStatePrefix(newConfigs);
 		for(var n = 0; n < prefixLength; n++) {
 			var newConfig = newConfigs[n];
@@ -596,6 +602,7 @@ export class Router {
 			} else {
 				newStateDatas.push(this.currentStateDatas[n]);
 			}
+			this.accumulateStateDataProps(accumulatedDataProps, newStateDatas[n]);
 			state.data = extend(true, state.data, newStateDatas[n]);
 		}
 		for(var n = prefixLength; n < newConfigs.length; n++) {
@@ -605,6 +612,7 @@ export class Router {
 			} else {
 				newStateDatas.push(newConfig.data || {});
 			}
+			this.accumulateStateDataProps(accumulatedDataProps, newStateDatas[n]);
 			state.data = extend(true, state.data, newStateDatas[n]);
 		}
 		for(var n = this.currentConfigs.length - 1; n >= prefixLength; n--) {
@@ -613,6 +621,7 @@ export class Router {
 				oldConfig.teardownCallback(this.currentStateDatas[n]);
 			}
 		}
+		this.insertAccumulatedStateDataProps(state.data, accumulatedDataProps);
 		this.currentState = state;
 		this.currentStateDatas = newStateDatas;
 		this.currentConfigs = newConfigs;
@@ -628,6 +637,30 @@ export class Router {
 			length++;
 		}
 		return length;
+	}
+	
+	private accumulateStateDataProps(accumulatedDataProps: RouterAccumulatedPropMap, data: RouterStateData) {
+		for(var name in data) {
+			if(name && (name.charAt(0) === '+')) {
+				var values = accumulatedDataProps[name];
+				if(!values) {
+					values = [];
+				}
+				var value = data[name];
+				if(Array.isArray(value)) {
+					values = values.concat(value);
+				} else {
+					values.push(value);
+				}
+				accumulatedDataProps[name] = values;
+			}
+		}
+	}
+	
+	private insertAccumulatedStateDataProps(data: RouterStateData, accumulatedDataProps: RouterAccumulatedPropMap) {
+		for(var name in accumulatedDataProps) {
+			data[name.substring(1)] = accumulatedDataProps[name];
+		}
 	}
 	
 	private logError(error: any) {
