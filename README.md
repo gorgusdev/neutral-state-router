@@ -28,6 +28,9 @@ be referenced by a dot separated path of names. Therefore state names must not c
 dot characters.
 
 Each state has an optional URL path that will be prepended to any URL path of its sub states.
+If the URL of a state starts with a ^ character then URLs from parent states will not be
+prepended. Instead the URL is used as is without the ^ character.
+
 Naturally only states with an URL can be activated as the result of an URL change. States with
 and without URLs can be activated programmatically by using a dot separated path of names so
 long as the state is not flagged as `unrouted`. A state flagged as `unrouted` can never become
