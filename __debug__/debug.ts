@@ -72,6 +72,13 @@ router.addConfig('a', {
 					}, 5000);
 				});
 			}
+		},
+		b3: {
+			configs: {
+				c1: {
+					url: '/b3c1'
+				}
+			}
 		}
 	}
 });
@@ -85,7 +92,7 @@ router.start(hist, (state) => {
 	msgElem[msgProp] = JSON.stringify(state);
 	document.title = 'Test ' + state.historyTrackId;
 }, (path, url, partialState, error) => {
-	console.log('NotFound: ' + path + ', ' + url);
+	console.log('NotFound: ' + path + ', ' + url, error);
 	msgElem[msgProp] = 'NOT FOUND: ' + JSON.stringify(partialState);
 }, () => {
 	console.log('Missing URL route path');
@@ -98,7 +105,6 @@ router.start(hist, (state) => {
 }, (transitionId) => {
 	console.log('Transition End: ' + transitionId);
 });
-
 
 var elem = document.getElementById('b1c1');
 if(elem.addEventListener) {

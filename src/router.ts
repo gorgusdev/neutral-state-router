@@ -404,19 +404,26 @@ export class Router {
 					}
 					if(subCalls.length > 0) {
 						Promise.all(subCalls).then((subMatches: RouterConfigMatch[]) => {
-							var bestSubMatch: RouterConfigMatch = null;
+							var bestMatch: RouterConfigMatch = null;
 							for(var n = 0; n < subMatches.length; n++) {
 								var subMatch = subMatches[n];
 								if(subMatch) {
-									if(!bestSubMatch || (!subMatch.prefixMatch && bestSubMatch.prefixMatch) || (subMatch.configMatches && (!bestSubMatch.configMatches || (subMatch.configMatches.length > bestSubMatch.configMatches.length)))) {
-										bestSubMatch = subMatch;
+									if(!bestMatch || (!subMatch.prefixMatch && bestMatch.prefixMatch) || (subMatch.configMatches && (!bestMatch.configMatches || (subMatch.configMatches.length > bestMatch.configMatches.length)))) {
+										bestMatch = subMatch;
 									}
 								}
 							}
-							if(bestSubMatch) {
-								resolve(bestSubMatch);
+							if(bestMatch && bestMatch.prefixMatch) {
+								var match = this.matchRoutedConfigToUrl(config, configPath, url, configs, pathPrefixParams);
+								if(match && !match.prefixMatch) {
+									bestMatch = match;
+								}
 							}
-							resolve(this.matchRoutedConfigToUrl(config, configPath, url, configs, pathPrefixParams));
+							if(bestMatch) {
+								resolve(bestMatch);
+							} else {
+								resolve(this.matchRoutedConfigToUrl(config, configPath, url, configs, pathPrefixParams));
+							}
 						});
 						return;
 					}

@@ -244,4 +244,6 @@ describe('Router', function() {
 			jest.runAllTimers();
 		});
 	});
+	
+	// Remember to add test for a updateUrl('/'): { url: '/', configs: { b: { configs: { c: { url: '/c' }}}}}
 });
