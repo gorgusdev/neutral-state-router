@@ -25,6 +25,7 @@ interface RouterConfigInternal extends RouterConfig {
 	pathRegExp?: RegExp;
 	pathBuildFunc?: (params: any) => string;
 	pathParams?: PathToRegExpKey[];
+	rootSubUrl?: boolean;
 }
 
 interface RouterConfigMatch {
@@ -76,7 +77,7 @@ export class Router {
 		this.currentConfigs = [];
 		this.transitionId = 0;
 		this.lastDoneTransitionId = 0;
-		this.buildRouterConfigUrlPrefix(this.rootConfig, '', true);
+		this.buildRouterConfigUrlPrefix(this.rootConfig, '', true, false);
 	}
 	
 	getCurrentState(): RouterState {
@@ -385,9 +386,12 @@ export class Router {
 		return new Promise((resolve, reject) => {
 			var pathPrefixRegExp = config.pathPrefixRegExp;
 			var subConfigs: RouterConfig[] = null;
-			if(pathPrefixRegExp) {
-				var pathPrefixParams = pathPrefixRegExp.exec(url);
-				if(pathPrefixParams) {
+			if(pathPrefixRegExp || config.rootSubUrl) {
+				var pathPrefixParams: RegExpExecArray = null;
+				if(pathPrefixRegExp) {
+					pathPrefixParams = pathPrefixRegExp.exec(url);
+				}
+				if(pathPrefixParams || config.rootSubUrl) {
 					if(config.routeExtensionCallback && !config.routeExtended) {
 						this.extendRouterConfig(configPath, config).then((extConfig) => {
 							resolve(this.findRoutedConfigByUrl(extConfig, configPath, url, configs));
@@ -485,27 +489,32 @@ export class Router {
 		this.buildRouterMappingForConfig(this.rootConfig, '');
 	}
 	
-	private buildRouterMappingForConfig(config: RouterConfigInternal, urlPrefix: string): boolean {
+	private buildRouterMappingForConfig(config: RouterConfigInternal, urlPrefix: string): boolean[] {
 		var url = this.buildConfigUrl(urlPrefix, config.url);
 		config.configs = config.configs || {};
+		var hasRootConfigUrl = false;
 		var hasRoutedSubConfig = config.routeExtensionCallback && !config.routeExtended;
 		for(var key in config.configs) {
 			var subConfig = config.configs[key];
-			if(this.buildRouterMappingForConfig(subConfig, url)) {
+			var subFlags = this.buildRouterMappingForConfig(subConfig, url);
+			if(subFlags[0]) {
 				hasRoutedSubConfig = true;
+			}
+			if(subFlags[1]) {
+				hasRootConfigUrl = true;
 			}
 		}
 		var isRoutedConfig = this.buildRoutedConfigUrlMapping(config, url);
-		this.buildRouterConfigUrlPrefix(config, url, hasRoutedSubConfig);
+		this.buildRouterConfigUrlPrefix(config, url, hasRoutedSubConfig, hasRootConfigUrl);
 		
-		return isRoutedConfig || hasRoutedSubConfig;
+		return [isRoutedConfig || hasRoutedSubConfig, hasRootConfigUrl || this.hasRootConfigUrl(config.url)];
 	}
 	
 	private buildConfigUrl(urlPrefix: string, configUrl: string): string {
 		if(!configUrl) {
 			return urlPrefix;
 		}
-		if(configUrl.charAt(0) === '^') {
+		if(this.hasRootConfigUrl(configUrl)) {
 			if((configUrl.length < 2) || (configUrl.charAt(1) !== '/')) {
 				return '/' + configUrl.substring(1);
 			} else {
@@ -524,6 +533,10 @@ export class Router {
 				return urlPrefix + configUrl;
 			}
 		}
+	}
+	
+	private hasRootConfigUrl(configUrl: string) {
+		return !!configUrl && (configUrl.charAt(0) === '^');
 	}
 	
 	private buildRoutedConfigUrlMapping(config: RouterConfigInternal, url: string): boolean {
@@ -546,7 +559,7 @@ export class Router {
 		}
 	}
 	
-	private buildRouterConfigUrlPrefix(config: RouterConfigInternal, url: string, hasRoutedSubConfig: boolean) {
+	private buildRouterConfigUrlPrefix(config: RouterConfigInternal, url: string, hasRoutedSubConfig: boolean, hasRootConfigUrl: boolean) {
 		if(hasRoutedSubConfig) {
 			var pathParams: PathToRegExpKey[] = [];
 			if(url === '/') {
@@ -560,6 +573,7 @@ export class Router {
 			delete config.pathPrefixRegExp;
 			delete config.pathPrefixParams;
 		}
+		config.rootSubUrl = hasRootConfigUrl;
 	}
 
 	private fireRouteNotFoundCallback(error: any, configPath: string, url: string, urlParams: RouterUrlParams, queryParams: RouterQueryParams) {

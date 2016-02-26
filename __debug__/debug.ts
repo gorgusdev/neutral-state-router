@@ -48,6 +48,9 @@ router.addConfig('a', {
 					data: {
 						level: 'third'
 					}
+				},
+				c5: {
+					url: '^/c5'
 				}
 			}
 		},
