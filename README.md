@@ -292,8 +292,21 @@ requestReload(): boolean
 
 ```javascript
 navigateTo(configPath: string, urlParams: RouterUrlParams,
-	queryParams: RouterQueryParams): Thenable<RouterState>
+	queryParams: RouterQueryParams, extraStateData: RouterStateData): Thenable<RouterState>
 ```
+
+- **configPath** A dot separated path of state names to the state that will be activated.
+
+- **urlParams** A map of named URL parameters that will be used to build the URL of the
+activated state.
+
+- **queryParams** A map of named query string parameters that will be added to the URL of the
+activated state.
+
+- **extraStateData** A data object that will be merged into the state data of the activated state.
+Note that the extra state data will only be available in the callbacks that are called from this
+`navigateTo` call. If the state is reactivated by for example a URL change the extra state data
+will not be available.
 
 To programmatically activate a state call this method with the dot separated name of the state to
 activate. If the URL of the state to activate has any parameters they will be filled in from the
@@ -302,6 +315,9 @@ activate. If the URL of the state to activate has any parameters they will be fi
 The method will return a promise object that will resolve with the new router state object if the
 requested activation succeeds. Otherwise it will reject with a router exception. All the usual
 callbacks will also be called as expected.
+
+The data object of the activated state will have the `extraStateData` object merged into it in any
+callbacks triggered by this method.
 
 ## TODO
 
