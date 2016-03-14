@@ -40,8 +40,13 @@ declare module jest {
         (): void;
     }
 	
+	interface DoneFunction {
+		(): void;
+		fail: (reason?: string|Error) => void;
+	}
+	
 	interface WithDoneFunction {
-		(done?: EmptyFunction): void;
+		(done?: DoneFunction): void;
 	}
 
     interface Matchers {

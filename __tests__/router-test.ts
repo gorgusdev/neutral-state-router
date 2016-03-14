@@ -8,9 +8,12 @@ jest.dontMock('path-to-regexp');
 jest.dontMock('es6-promise');
 jest.dontMock('query-string');
 jest.dontMock('strict-uri-encode');
+jest.dontMock('urllite');
+jest.dontMock('urllite/lib/core');
+jest.dontMock('xtend');
 
 import { Router } from '../src/router';
-import { RouterConfig } from '../src/router-types';
+import { RouterConfig, RouterConfigMap } from '../src/router-types';
 import { RouterException } from '../src/router-exception';
 import { RouterNotFoundException } from '../src/router-not-found-exception';
 import { RouterMemoryHistory } from '../src/router-memory-history';
@@ -146,6 +149,10 @@ describe('Router', function() {
 								reloadable: true
 							}
 						}
+					},
+					'b4': {
+						url: '/b4',
+						routeExtensionCallback: () => { return Promise.resolve(<RouterConfigMap>{ c1: { url: '/c1' } }); }
 					}
 				}
 			});
@@ -252,7 +259,217 @@ describe('Router', function() {
 			router.navigateTo('a.b3.c1');
 			jest.runAllTimers();
 		});
+		
+		it('extends config and matches extended states in config', function(done) {
+			router.start(history, (routerState) => {
+				expect(routerState.configPath).toBe('a.b4.c1');
+				done();
+			});
+			router.navigateTo('a.b4.c1');
+			jest.runAllTimers();
+		});
+
 	});
 	
 	// Remember to add test for a updateUrl('/'): { url: '/', configs: { b: { configs: { c: { url: '/c' }}}}}
+	describe('updateUrl', function() {
+		var history: RouterMemoryHistory;
+		
+		beforeEach(function() {
+			router = new TestRouter();
+			router.addConfig('a', {
+				url: '/a',
+				configs: {
+					'b1': {
+						url: '/b1'
+					},
+					'b2': {
+						url: '/b2',
+						errorPath: 'a.b1',
+						configs: {
+							'c1': {
+								url: '/:uArg'
+							}
+						}
+					},
+					'b3': {
+						url: '/b3',
+						unrouted: true,
+						configs: {
+							'c1': {
+								url: '/c1',
+								reloadable: true
+							}
+						}
+					},
+					'b4': {
+						url: '/b4',
+						routeExtensionCallback: () => { return Promise.resolve(<RouterConfigMap>{ c1: { url: '/c1' } }); }
+					}					
+				}
+			});
+			history = new RouterMemoryHistory();
+		});
+		
+		it('matches an URL to a state', function(done) {
+			router.start(history, (routerState) => {
+				expect(routerState.configPath).toBe('a');
+				done();
+			}, () => {
+				done.fail();
+			}, () => {
+				done.fail();
+			});
+			(<any>history.getUrl).mockReturnValue('/a');
+			(<any>history.getConfigPath).mockReturnValue(null);
+			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
+			router.triggerUpdateUrl();
+			jest.runAllTimers();
+		});
+		
+		it('matches a config path to a state', function(done) {
+			router.start(history, (routerState) => {
+				expect(routerState.configPath).toBe('a');
+				done();
+			}, () => {
+				done.fail();
+			}, () => {
+				done.fail();
+			});
+			(<any>history.getUrl).mockReturnValue('/a');
+			(<any>history.getConfigPath).mockReturnValue('a');
+			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
+			router.triggerUpdateUrl();
+			jest.runAllTimers();
+		});
+		
+		it('activates an error state from parent state', function(done) {
+			router.start(history, (routerState) => {
+				expect(routerState.configPath).toBe('a.b1');
+				done();
+			}, () => {
+				done.fail();
+			}, () => {
+				done.fail();
+			});
+			(<any>history.getUrl).mockReturnValue('/a/b2/x/y');
+			(<any>history.getConfigPath).mockReturnValue(null);
+			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
+			router.triggerUpdateUrl();
+			jest.runAllTimers();
+		});
+		
+		it('calls route not found callback for an illegal URL', function(done) {
+			router.start(history, (routerState) => {
+				done.fail();
+			}, (configPath: string, fullUrl: string, matchedConfigs: RouterConfig[], error: any) => {
+				expect(fullUrl).toBe('/x');
+				done();
+			}, () => {
+				done.fail();
+			});
+			(<any>history.getUrl).mockReturnValue('/x');
+			(<any>history.getConfigPath).mockReturnValue(null);
+			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
+			router.triggerUpdateUrl();
+			jest.runAllTimers();
+		});
+		
+		it('calls route not found callback for an illegal config path', function(done) {
+			router.start(history, (routerState) => {
+				done.fail();
+			}, (configPath: string, fullUrl: string, matchedConfigs: RouterConfig[], error: any) => {
+				expect(configPath).toBe('x');
+				done();
+			}, () => {
+				done.fail();
+			});
+			(<any>history.getUrl).mockReturnValue('/x');
+			(<any>history.getConfigPath).mockReturnValue('x');
+			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
+			router.triggerUpdateUrl();
+			jest.runAllTimers();
+		});
+		
+		it('calls URL missing callback for a missing URL', function(done) {
+			router.start(history, (routerState) => {
+				done.fail();
+			}, (configPath: string, fullUrl: string, matchedConfigs: RouterConfig[], error: any) => {
+				done.fail();
+			}, () => {
+				expect(true).toBe(true);
+				done();
+			});
+			(<any>history.getUrl).mockReturnValue(null);
+			(<any>history.getConfigPath).mockReturnValue(null);
+			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
+			router.triggerUpdateUrl();
+			jest.runAllTimers();
+		});
+		
+		it('extracts URL parameters', function(done) {
+			router.start(history, (routerState) => {
+				expect(routerState.urlParams).toEqual({ uArg: 'uValue' });
+				done();
+			}, () => {
+				done.fail();
+			}, () => {
+				done.fail();
+			});
+			(<any>history.getUrl).mockReturnValue('/a/b2/uValue');
+			(<any>history.getConfigPath).mockReturnValue(null);
+			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
+			router.triggerUpdateUrl();
+			jest.runAllTimers();
+		});
+		
+		it('extracts query parameters', function(done) {
+			router.start(history, (routerState) => {
+				expect(routerState.queryParams).toEqual({ qArg: 'qValue' });
+				done();
+			}, () => {
+				done.fail();
+			}, () => {
+				done.fail();
+			});
+			(<any>history.getUrl).mockReturnValue('/a?qArg=qValue');
+			(<any>history.getConfigPath).mockReturnValue(null);
+			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
+			router.triggerUpdateUrl();
+			jest.runAllTimers();
+		});
+		
+		it('reloads URL when requested', function(done) {
+			router.start(history, (routerState) => {
+				expect((<any>history.reloadAtUrl).mock.calls.length).toBe(1);
+				done();
+			}, () => {
+				done.fail();
+			}, () => {
+				done.fail();
+			});
+			router.requestReload();
+			(<any>history.getUrl).mockReturnValue('/a/b3/c1');
+			(<any>history.getConfigPath).mockReturnValue(null);
+			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
+			router.triggerUpdateUrl();
+			jest.runAllTimers();
+		});
+		
+		it('extends config an matches an URL in the extended config', function(done) {
+			router.start(history, (routerState) => {
+				expect(routerState.configPath).toBe('a.b4.c1');
+				done();
+			}, () => {
+				done.fail();
+			}, () => {
+				done.fail();
+			});
+			(<any>history.getUrl).mockReturnValue('/a/b4/c1');
+			(<any>history.getConfigPath).mockReturnValue(null);
+			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
+			router.triggerUpdateUrl();
+			jest.runAllTimers();
+		});
+	});
 });
