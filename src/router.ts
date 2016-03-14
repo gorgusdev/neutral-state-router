@@ -139,7 +139,7 @@ export class Router {
 		this.running = false;
 	}
 	
-	navigateTo(configPath: string, urlParams?: RouterUrlParams, queryParams?: RouterQueryParams): Thenable<RouterState> {
+	navigateTo(configPath: string, urlParams?: RouterUrlParams, queryParams?: RouterQueryParams, extraStateData?: RouterStateData): Thenable<RouterState> {
 		if(!this.isRunning()) {
 			throw new RouterException('Router is not running');
 		}
@@ -162,7 +162,7 @@ export class Router {
 				}
 				this.history.navigateTo(configPath, url);
 				var historyTrackId = this.history.getHistoryTrackId();
-				this.updateState(configPath, url, urlParams, queryParams, historyTrackId, configs);
+				this.updateState(configPath, url, urlParams, queryParams, historyTrackId, configs, extraStateData);
 				if(this.routeFoundCallback) {
 					this.routeFoundCallback(this.currentState);
 				}
@@ -277,7 +277,7 @@ export class Router {
 					this.history.reloadAtUrl(url);
 				}
 				var urlParams: RouterUrlParams = this.buildUrlParams(newConfig.pathParams, configMatch.pathMatches);
-				this.updateState(configMatch.configPath, url, urlParams, queryParams, historyTrackId, configMatch.configMatches);
+				this.updateState(configMatch.configPath, url, urlParams, queryParams, historyTrackId, configMatch.configMatches, null);
 				if(this.routeFoundCallback) {
 					this.routeFoundCallback(this.currentState);
 				}
@@ -307,7 +307,7 @@ export class Router {
 			this.history.reloadAtUrl(url);
 		}
 		var urlParams: RouterUrlParams = this.findAndBuildUrlParams(url, configs);
-		this.updateState(configPath, url, urlParams, queryParams, historyTrackId, configs);
+		this.updateState(configPath, url, urlParams, queryParams, historyTrackId, configs, null);
 		if(this.routeFoundCallback) {
 			this.routeFoundCallback(this.currentState);
 		}
@@ -604,7 +604,7 @@ export class Router {
 		return state;
 	}
 
-	private updateState(configPath: string, url: string, urlParams: RouterUrlParams, queryParams: RouterQueryParams, historyTrackId: string, newConfigs: RouterConfig[]) {
+	private updateState(configPath: string, url: string, urlParams: RouterUrlParams, queryParams: RouterQueryParams, historyTrackId: string, newConfigs: RouterConfig[], extraStateData: RouterStateData) {
 		var state: RouterState = {
 			configPath: configPath,
 			url: url,
@@ -643,6 +643,9 @@ export class Router {
 			}
 		}
 		this.insertAccumulatedStateDataProps(state.data, accumulatedDataProps);
+		if(extraStateData) {
+			state.data = extend(true, state.data, extraStateData);
+		}
 		this.currentState = state;
 		this.currentStateDatas = newStateDatas;
 		this.currentConfigs = newConfigs;

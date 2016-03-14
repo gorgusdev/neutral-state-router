@@ -220,6 +220,15 @@ describe('Router', function() {
 			jest.runAllTimers();
 		});
 		
+		it('adds extra state data', function(done) {
+			router.start(history, (routerState) => {}, () => {}, () => {});
+			router.navigateTo('a', {}, {}, { extra: 'xValue' }).then((state) => {
+				expect(state.data).toEqual({ extra: 'xValue' });
+				done();
+			});
+			jest.runAllTimers();
+		});
+		
 		it('can only be called if the router is running', function() {
 			expect(router.navigateTo('a')).toThrow(RouterException);
 		});
