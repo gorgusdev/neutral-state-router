@@ -23,8 +23,8 @@ class TestRouter extends Router {
 		return this.rootConfig;
 	}
 	
-	triggerUpdateUrl() {
-		this.updateUrl();
+	triggerUpdateFromHistory() {
+		this.updateFromHistory();
 	}
 }
 
@@ -323,7 +323,7 @@ describe('Router', function() {
 			(<any>history.getUrl).mockReturnValue('/a');
 			(<any>history.getConfigPath).mockReturnValue(null);
 			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
-			router.triggerUpdateUrl();
+			router.triggerUpdateFromHistory();
 			jest.runAllTimers();
 		});
 		
@@ -339,7 +339,7 @@ describe('Router', function() {
 			(<any>history.getUrl).mockReturnValue('/a');
 			(<any>history.getConfigPath).mockReturnValue('a');
 			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
-			router.triggerUpdateUrl();
+			router.triggerUpdateFromHistory();
 			jest.runAllTimers();
 		});
 		
@@ -355,7 +355,7 @@ describe('Router', function() {
 			(<any>history.getUrl).mockReturnValue('/a/b2/x/y');
 			(<any>history.getConfigPath).mockReturnValue(null);
 			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
-			router.triggerUpdateUrl();
+			router.triggerUpdateFromHistory();
 			jest.runAllTimers();
 		});
 		
@@ -371,7 +371,7 @@ describe('Router', function() {
 			(<any>history.getUrl).mockReturnValue('/x');
 			(<any>history.getConfigPath).mockReturnValue(null);
 			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
-			router.triggerUpdateUrl();
+			router.triggerUpdateFromHistory();
 			jest.runAllTimers();
 		});
 		
@@ -387,7 +387,7 @@ describe('Router', function() {
 			(<any>history.getUrl).mockReturnValue('/x');
 			(<any>history.getConfigPath).mockReturnValue('x');
 			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
-			router.triggerUpdateUrl();
+			router.triggerUpdateFromHistory();
 			jest.runAllTimers();
 		});
 		
@@ -403,7 +403,7 @@ describe('Router', function() {
 			(<any>history.getUrl).mockReturnValue(null);
 			(<any>history.getConfigPath).mockReturnValue(null);
 			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
-			router.triggerUpdateUrl();
+			router.triggerUpdateFromHistory();
 			jest.runAllTimers();
 		});
 		
@@ -419,7 +419,7 @@ describe('Router', function() {
 			(<any>history.getUrl).mockReturnValue('/a/b2/uValue');
 			(<any>history.getConfigPath).mockReturnValue(null);
 			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
-			router.triggerUpdateUrl();
+			router.triggerUpdateFromHistory();
 			jest.runAllTimers();
 		});
 		
@@ -435,7 +435,7 @@ describe('Router', function() {
 			(<any>history.getUrl).mockReturnValue('/a?qArg=qValue');
 			(<any>history.getConfigPath).mockReturnValue(null);
 			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
-			router.triggerUpdateUrl();
+			router.triggerUpdateFromHistory();
 			jest.runAllTimers();
 		});
 		
@@ -452,7 +452,7 @@ describe('Router', function() {
 			(<any>history.getUrl).mockReturnValue('/a/b3/c1');
 			(<any>history.getConfigPath).mockReturnValue(null);
 			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
-			router.triggerUpdateUrl();
+			router.triggerUpdateFromHistory();
 			jest.runAllTimers();
 		});
 		
@@ -468,7 +468,7 @@ describe('Router', function() {
 			(<any>history.getUrl).mockReturnValue('/a/b4/c1');
 			(<any>history.getConfigPath).mockReturnValue(null);
 			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
-			router.triggerUpdateUrl();
+			router.triggerUpdateFromHistory();
 			jest.runAllTimers();
 		});
 	});

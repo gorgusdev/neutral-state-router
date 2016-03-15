@@ -126,7 +126,7 @@ export class Router {
 		this.transitionBegin = transitionBegin;
 		this.transitionCancel = transitionCancel;
 		this.transitionEnd = transitionEnd;
-		this.history.startHistoryUpdates(this.updateUrl);
+		this.history.startHistoryUpdates(this.updateFromHistory);
 		this.buildRouterConfigs();
 		this.running = true;
 		this.history.init();
@@ -225,7 +225,7 @@ export class Router {
 		return '/';
 	}
 
-	protected updateUrl = () => {
+	protected updateFromHistory = () => {
 		if(!this.isRunning()) {
 			return;
 		}
@@ -236,9 +236,6 @@ export class Router {
 			if(this.urlMissingRouteCallback) {
 				this.urlMissingRouteCallback()
 			}
-			return;
-		}
-		if((configPath === this.currentState.configPath) && (url === this.currentState.url)) {
 			return;
 		}
 		var urlParts = urllite(url);
