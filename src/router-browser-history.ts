@@ -206,11 +206,14 @@ export class RouterBrowserHistory implements RouterHistory {
 			}
 			if(url) {
 				entry = this.createHistoryState(null, url);
-				this.rewritePopState(entry);
+				entry = this.rewritePopState(entry);
 			}
 		}
+		var callUpdate = this.currentHistoryEntry !== entry;
 		this.updateHistoryEntries(entry);
-		this.updateUrlCallback();
+		if(callUpdate) {
+			this.updateUrlCallback();
+		}
 	};
 	
 	private updateUrlFromIFrameLoad = () => {
@@ -290,7 +293,7 @@ export class RouterBrowserHistory implements RouterHistory {
 		history.pushState(entry, '', url);
 	}
 	
-	private rewritePopState(entry: RouterHistoryEntry) {
+	private rewritePopState(entry: RouterHistoryEntry): RouterHistoryEntry {
 		var url = entry.url;
 		if(this.useHashMode) {
 			url = this.buildFullHashUrl(url);
@@ -298,6 +301,7 @@ export class RouterBrowserHistory implements RouterHistory {
 			url = this.urlPathPrefix + url;
 		}
 		history.replaceState(entry, '', url);
+		return history.state;
 	}
 	
 	private getStateIFrameElement(): HTMLElement {
