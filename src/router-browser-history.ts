@@ -201,7 +201,7 @@ export class RouterBrowserHistory implements RouterHistory {
 		var entry = this.readPopState();
 		if(!entry) {
 			var url = this.getUrl();
-			if(!url || ((url === '/') && location.hash)) {
+			if(!url) {
 				url = this.getUrlFromOtherMode();
 			}
 			if(url) {
@@ -209,7 +209,7 @@ export class RouterBrowserHistory implements RouterHistory {
 				entry = this.rewritePopState(entry);
 			}
 		}
-		var callUpdate = this.currentHistoryEntry !== entry;
+		var callUpdate = (this.currentHistoryEntry !== entry) || ((this.currentHistoryEntry === null) && (entry === null));
 		this.updateHistoryEntries(entry);
 		if(callUpdate) {
 			this.updateUrlCallback();
