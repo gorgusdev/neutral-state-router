@@ -119,7 +119,7 @@ interface RouterConfig {
 }
 
 interface RouteExtensionCallback {
-	(): Thenable<RouterConfigMap>;
+	(configPath: string, config: RouterConfig): Thenable<RouterConfigMap>;
 }
 
 interface SetupCallback {

@@ -462,7 +462,7 @@ export class Router {
 	private extendRouterConfig(configPath: string[], config: RouterConfigInternal): Thenable<RouterConfig> {
 		if(!config.routeExtensionPromise) {
 			config.routeExtensionPromise = new Promise((resolve, reject) => {
-				var routeExtension = config.routeExtensionCallback();
+				var routeExtension = config.routeExtensionCallback(configPath.join('.'), config);
 				routeExtension.then((configMap) => {
 					config.routeExtended = true;
 					config.routeExtensionPromise = null;

@@ -29,7 +29,7 @@ export interface RouterConfigMap {
 }
 
 export interface RouteExtensionCallback {
-	(): Thenable<RouterConfigMap>;
+	(configPath: string, config: RouterConfig): Thenable<RouterConfigMap>;
 }
 
 export interface SetupCallback {
