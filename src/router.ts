@@ -626,7 +626,7 @@ export class Router {
 		for(var n = prefixLength; n < newConfigs.length; n++) {
 			var newConfig = newConfigs[n];
 			if(newConfig.setupCallback) {
-				newStateDatas.push(newConfig.setupCallback(state, state.data, newConfig.data));
+				newStateDatas.push(newConfig.setupCallback(state, state.data, extend({}, newConfig.data)));
 			} else {
 				newStateDatas.push(newConfig.data || {});
 			}
