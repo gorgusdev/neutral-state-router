@@ -440,19 +440,23 @@ export class Router {
 		if(config.pathRegExp) {
 			var pathMatches = config.pathRegExp.exec(url);
 			if(pathMatches) {
+				configs = configs.slice(1);
+				configs.push(config);
 				return {
 					configPath: configPath.join('.'),
 					pathMatches: pathMatches,
-					configMatches: configs.concat([config]),
+					configMatches: configs,
 					prefixMatch: false
 				};
 			}
 		}
 		if(pathPrefixParams) {
+			configs = configs.slice(1);
+			configs.push(config);
 			return {
 				configPath: configPath.join('.'),
 				pathMatches: pathPrefixParams,
-				configMatches: configs.concat([config]),
+				configMatches: configs,
 				prefixMatch: true
 			};
 		}
