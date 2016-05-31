@@ -110,7 +110,7 @@ export class RouterBrowserHistory implements RouterHistory {
 			this.updateHistoryEntries(entry);
 		} else {
 			this.currentHistoryEntry = entry;
-			location.hash = this.buildFullHashUrl(entry.url);
+			location.hash = '#' + entry.url;
 		}
 	}
 	
