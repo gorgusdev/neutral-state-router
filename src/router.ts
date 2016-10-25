@@ -247,7 +247,7 @@ export class Router {
 				if(this.isTransitionCancelled(transitionIdSnapshot)) {
 					return;
 				}
-				this.updateStateFromNamedConfig(configPath, url, queryParams, historyTrackId, configs);
+				this.updateStateFromNamedConfig(configPath, url, urlParts.pathname, queryParams, historyTrackId, configs);
 				this.endCurrentTransition();
 			}).then(undefined, (error) => {
 				this.fireRouteNotFoundCallback(error, configPath, url, null, queryParams);
@@ -286,7 +286,7 @@ export class Router {
 				if(this.isTransitionCancelled(transitionIdSnapshot)) {
 					return;
 				}
-				this.updateStateFromNamedConfig(errorPath, url, queryParams, historyTrackId, configs);
+				this.updateStateFromNamedConfig(errorPath, url, urlParts.pathname, queryParams, historyTrackId, configs);
 				this.endCurrentTransition();
 			}).then(undefined, (error) => {
 				this.fireRouteNotFoundCallback(error, null, url, null, queryParams);
@@ -295,7 +295,7 @@ export class Router {
 		}
 	};
 
-	private updateStateFromNamedConfig(configPath: string, url: string, queryParams: RouterQueryParams, historyTrackId: string, configs: RouterConfig[]) {
+	private updateStateFromNamedConfig(configPath: string, url: string, urlPath: string, queryParams: RouterQueryParams, historyTrackId: string, configs: RouterConfig[]) {
 		var newConfig: RouterConfigInternal = configs[configs.length - 1];
 		if(newConfig.unrouted) {
 			throw new RouterNotFoundException('Unable to change to unrouted path: ' + configPath, configs);
@@ -303,7 +303,7 @@ export class Router {
 		if(this.pendingReload && newConfig.url && newConfig.reloadable) {
 			this.history.reloadAtUrl(url);
 		}
-		var urlParams: RouterUrlParams = this.findAndBuildUrlParams(url, configs);
+		var urlParams: RouterUrlParams = this.findAndBuildUrlParams(urlPath, configs);
 		this.updateState(configPath, url, urlParams, queryParams, historyTrackId, configs, null);
 		if(this.routeFoundCallback) {
 			this.routeFoundCallback(this.currentState);
