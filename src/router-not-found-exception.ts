@@ -4,13 +4,13 @@
 import { RouterException } from './router-exception';
 import { RouterConfig } from './router-types';
 
-export class RouterNotFoundException extends RouterException {
-	
-	public matched: RouterConfig[];
-	
-	constructor(message: string, matched: RouterConfig[]) {
+export class RouterNotFoundException<UP, QP, SD> extends RouterException {
+
+	public matched: RouterConfig<UP, QP, SD>[] | undefined;
+
+	constructor(message: string, matched: RouterConfig<UP, QP, SD>[] | undefined) {
 		super(message);
 		this.matched = matched;
 	}
-	
+
 }

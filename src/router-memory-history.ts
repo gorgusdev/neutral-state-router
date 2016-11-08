@@ -5,36 +5,36 @@ import { RouterHistory } from './router-history';
 
 export class RouterMemoryHistory implements RouterHistory {
 
-	startHistoryUpdates(updateUrlCallback: () => void) {
-		
-	}
-	
-	stopHistoryUpdates() {
-		
-	}
-	
-	init() {
-		
-	}
-	
-	reloadAtUrl(url: string) {
-		
-	}
-	
-	navigateTo(configPath: string, url: string) {
-		
-	}
-	
-	getUrl(): string {
-		return '';
-	}
-	
-	getConfigPath(): string {
-		return null;
+	public startHistoryUpdates(updateUrlCallback: () => void) {
+		// Do nothing
 	}
 
-	getHistoryTrackId(): string {
-		return null;
+	public stopHistoryUpdates() {
+		// Do nothing
 	}
-	
+
+	public init() {
+		// Do nothing
+	}
+
+	public reloadAtUrl(url: string) {
+		// Do nothing
+	}
+
+	public navigateTo(configPath: string, url: string) {
+		// Do nothing
+	}
+
+	public getUrl(): string | undefined {
+		return '';
+	}
+
+	public getConfigPath(): string | undefined {
+		return undefined;
+	}
+
+	public getHistoryTrackId(): string | undefined {
+		return undefined;
+	}
+
 }

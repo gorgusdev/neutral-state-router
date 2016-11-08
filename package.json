@@ -26,13 +26,18 @@
   "author": "Göran Gustafsson",
   "license": "MIT",
   "devDependencies": {
+    "@types/extend": "^2.0.30",
+    "@types/jest": "^15.1.32",
+    "@types/path-to-regexp": "^1.0.29",
+    "@types/query-string": "^3.0.29",
+    "es6-promise": "^3.1.2",
     "jest-cli": "^0.8.2",
     "remap-istanbul": "^0.5.1",
     "source-map-loader": "^0.1.5",
-    "typescript": "^1.7.5"
+    "tslint": "^3.15.1",
+    "typescript": "^2.0.0"
   },
   "dependencies": {
-    "es6-promise": "^3.1.2",
     "extend": "^3.0.0",
     "path-to-regexp": "^1.2.1",
     "query-string": "^3.0.0",

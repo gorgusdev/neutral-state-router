@@ -1,69 +1,67 @@
 // Copyright (c) 2016 Göran Gustafsson. All rights reserved.  
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-import { Promise } from 'es6-promise';
-
 export interface RouterStateData {
 	[name: string]: any;
 }
 
 export interface RouterUrlParams {
-	[name: string]: string;
+	[name: string]: string | null | undefined;
 }
 
 export interface RouterQueryParams {
-	[name: string]: string;
+	[name: string]: string | string[] | null | undefined;
 }
 
-export interface RouterState {
+export interface RouterState<UP, QP, SD> {
 	configPath: string;
 	url: string;
-	urlParams: RouterUrlParams;
-	queryParams: RouterQueryParams;
-	historyTrackId: string;
-	data: RouterStateData;
+	urlParams: RouterUrlParams & UP;
+	queryParams: RouterQueryParams & QP;
+	historyTrackId?: string;
+	data: RouterStateData & SD;
 }
 
-export interface RouterConfigMap {
-	[name: string]: RouterConfig;
+export interface RouterConfigMap<UP, QP, SD> {
+	[name: string]: RouterConfig<UP, QP, SD>;
 }
 
-export interface RouteExtensionCallback {
-	(configPath: string, config: RouterConfig): Thenable<RouterConfigMap>;
+export interface RouteExtensionCallback<UP, QP, SD> {
+	(configPath: string, config: RouterConfig<UP, QP, SD>): Promise<RouterConfigMap<UP, QP, SD>>;
 }
 
-export interface SetupCallback {
-	(routerState: RouterState, parentStateData: RouterStateData, currentStateData: RouterStateData): RouterStateData;
+export interface SetupCallback<UP, QP, SD> {
+	(routerState: RouterState<UP, QP, SD>, parentStateData: RouterStateData & SD, currentStateData: RouterStateData & SD): RouterStateData & SD;
 }
 
-export interface RefreshCallback {
-	(routerState: RouterState, parentStateData: RouterStateData, currentStateData: RouterStateData): RouterStateData
+export interface RefreshCallback<UP, QP, SD> {
+	(routerState: RouterState<UP, QP, SD>, parentStateData: RouterStateData & SD, currentStateData: RouterStateData & SD): RouterStateData & SD;
 }
 
-export interface TeardownCallback {
-	(stateData: RouterStateData): void;
+export interface TeardownCallback<SD> {
+	(stateData: RouterStateData & SD): void;
 }
 
-export interface RouterConfig {
+export interface RouterConfig<UP, QP, SD> {
 	url?: string;
 	unrouted?: boolean;
 	reloadable?: boolean;
 	errorPath?: string;
-	data?: RouterStateData;
-	configs?: RouterConfigMap;
+	data?: RouterStateData & SD;
+	configs?: RouterConfigMap<UP, QP, SD>;
 
-	routeExtensionCallback?: RouteExtensionCallback;
-	setupCallback?: SetupCallback;
-	refreshCallback?: RefreshCallback;
-	teardownCallback?: TeardownCallback;
+	routeExtensionCallback?: RouteExtensionCallback<UP, QP, SD>;
+	setupCallback?: SetupCallback<UP, QP, SD>;
+	refreshCallback?: RefreshCallback<UP, QP, SD>;
+	teardownCallback?: TeardownCallback<SD>;
 }
 
-export interface RouteFoundCallback {
-	(routerState: RouterState): void;
+export interface RouteFoundCallback<UP, QP, SD> {
+	(routerState: RouterState<UP, QP, SD>): void;
 }
 
-export interface RouteNotFoundCallback {
-	(configPath: string, fullUrl: string, matchedConfigs: RouterConfig[], error: any): void;
+export interface RouteNotFoundCallback<UP, QP, SD> {
+	(configPath: string | undefined, fullUrl: string | undefined, matchedConfigs: RouterConfig<UP, QP, SD>[] | undefined, error: any): void;
 }
 
 export interface UrlMissingRouteCallback {

@@ -1,8 +1,15 @@
-import { Promise } from 'es6-promise';
+import 'es6-promise';
 
 import router, { RouterBrowserHistory, RouterConfigMap } from '../src/index';
 
-router.addConfig('a', {
+router.addConfig<{}, {}, {}>('t', {
+	configs: {},
+	data: {
+		'a': 'b'
+	}
+});
+
+router.addConfig<{}, {}, {}>('a', {
 	url: '/',
 	data: {
 		level: 'first'
@@ -60,9 +67,9 @@ router.addConfig('a', {
 			data: {
 				level: 'second'
 			},
-			routeExtensionCallback: function(): Thenable<RouterConfigMap> {
+			routeExtensionCallback: function(): Promise<RouterConfigMap<{}, {}, {}>> {
 				console.log('Extend!');
-				return new Promise<RouterConfigMap>((resolve, reject) => {
+				return new Promise<RouterConfigMap<{}, {}, {}>>((resolve, reject) => {
 					setTimeout(() => {
 						resolve({
 							c1: {
@@ -86,9 +93,9 @@ router.addConfig('a', {
 	}
 });
 
-var msgElem: any = document.getElementById('content');
-var msgProp = ('innerText' in msgElem) ? 'innerText' : 'textContent';
-var hist: any = new RouterBrowserHistory('', true, !!(<any>window).useIFrameState, 'historyState');
+let msgElem: any = document.getElementById('content');
+let msgProp = ('innerText' in msgElem) ? 'innerText' : 'textContent';
+let hist: any = new RouterBrowserHistory('', true, !!(<any>window).useIFrameState, 'historyState');
 router.start(hist, (state) => {
 	console.log('Found State');
 	console.log(state);
@@ -109,8 +116,8 @@ router.start(hist, (state) => {
 	console.log('Transition End: ' + transitionId);
 });
 
-var elem = document.getElementById('b1c1');
-if(elem.addEventListener) {
+let elem = document.getElementById('b1c1');
+if(elem && elem.addEventListener) {
 	elem.addEventListener('click', (event) => {
 		event.preventDefault();
 		router.navigateTo('a.b1.c1', {}, {});
@@ -120,11 +127,11 @@ if(elem.addEventListener) {
 		event.returnValue = false;
 		router.navigateTo('a.b1.c1', {}, {});
 		return false;
-	});	
+	});
 }
 
-var elem = document.getElementById('b1c2');
-if(elem.addEventListener) {
+elem = document.getElementById('b1c2');
+if(elem && elem.addEventListener) {
 	elem.addEventListener('click', (event) => {
 		event.preventDefault();
 		router.navigateTo('a.b1.c2', {}, { hello: 'world' });
@@ -134,11 +141,11 @@ if(elem.addEventListener) {
 		event.returnValue = false;
 		router.navigateTo('a.b1.c2', {}, { hello: 'world' });
 		return false;
-	});	
+	});
 }
 
-var elem = document.getElementById('b1c3');
-if(elem.addEventListener) {
+elem = document.getElementById('b1c3');
+if(elem && elem.addEventListener) {
 	elem.addEventListener('click', (event) => {
 		event.preventDefault();
 		router.navigateTo('a.b1.c3', {}, {});
@@ -148,11 +155,11 @@ if(elem.addEventListener) {
 		event.returnValue = false;
 		router.navigateTo('a.b1.c3', {}, {});
 		return false;
-	});	
+	});
 }
 
-var elem = document.getElementById('b1c4');
-if(elem.addEventListener) {
+elem = document.getElementById('b1c4');
+if(elem && elem.addEventListener) {
 	elem.addEventListener('click', (event) => {
 		event.preventDefault();
 		router.navigateTo('a.b1.c4', { arg1: 'xyz' }, {});
@@ -162,11 +169,11 @@ if(elem.addEventListener) {
 		event.returnValue = false;
 		router.navigateTo('a.b1.c4', { arg1: 'xyz' }, {});
 		return false;
-	});	
+	});
 }
 
-var elem = document.getElementById('b2c1');
-if(elem.addEventListener) {
+elem = document.getElementById('b2c1');
+if(elem && elem.addEventListener) {
 	elem.addEventListener('click', (event) => {
 		event.preventDefault();
 		router.navigateTo('a.b2.c1', {}, {});
@@ -176,11 +183,11 @@ if(elem.addEventListener) {
 		event.returnValue = false;
 		router.navigateTo('a.b2.c1', {}, {});
 		return false;
-	});	
+	});
 }
 
-var elem = document.getElementById('reqReload');
-if(elem.addEventListener) {
+elem = document.getElementById('reqReload');
+if(elem && elem.addEventListener) {
 	elem.addEventListener('click', (event) => {
 		event.preventDefault();
 		router.requestReload();
@@ -190,5 +197,5 @@ if(elem.addEventListener) {
 		event.returnValue = false;
 		router.requestReload();
 		return false;
-	});	
+	});
 }

@@ -3,9 +3,11 @@
 		"target": "es3",
 		"module": "commonjs",
 		"noImplicitAny": true,
+		"strictNullChecks": true,
 		"removeComments": true,
 		"sourceMap": true,
 		"declaration": true,
+		"lib": ["dom", "es5", "scripthost", "es2015.promise"],
 		"outDir": "js/"
 	},
 	"files": [

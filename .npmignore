@@ -4,3 +4,4 @@ js/__tests__/*
 coverage
 html-report
 tsconfig.json
+npm-debug.log*

@@ -105,33 +105,33 @@ multiple times to incrementally build up the configuration. Any states named by 
 that doesn't exist will be created as empty states.
 
 ```javascript
-interface RouterConfig {
+interface RouterConfig<UP, QP, SD> {
 	url?: string;
 	unrouted?: boolean;
 	reloadable?: boolean;
 	errorPath?: string;
-	data?: RouterStateData;
-	configs?: RouterConfigMap;
-	routeExtensionCallback?: RouteExtensionCallback;
-	setupCallback?: SetupCallback;
-	refreshCallback?: RefreshCallback;
-	teardownCallback?: TeardownCallback;
+	data?: RouterStateData & SD;
+	configs?: RouterConfigMap<UP, QP, SD>;
+	routeExtensionCallback?: RouteExtensionCallback<UP, QP, SD>;
+	setupCallback?: SetupCallback<UP, QP, SD>;
+	refreshCallback?: RefreshCallback<UP, QP, SD>;
+	teardownCallback?: TeardownCallback<SD>;
 }
 
-interface RouteExtensionCallback {
-	(configPath: string, config: RouterConfig): Thenable<RouterConfigMap>;
+interface RouteExtensionCallback<UP, QP, SD> {
+	(configPath: string, config: RouterConfig<UP, QP, SD>): Promise<RouterConfigMap<UP, QP, SD>>;
 }
 
-interface SetupCallback {
-	(routerState: RouterState, parentStateData: RouterStateData, currentStateData: RouterStateData): RouterStateData;
+interface SetupCallback<UP, QP, SD> {
+	(routerState: RouterState<UP, QP, SD>, parentStateData: RouterStateData & SD, currentStateData: RouterStateData & SD): RouterStateData & SD;
 }
 
-interface RefreshCallback {
-	(routerState: RouterState, parentStateData: RouterStateData, currentStateData: RouterStateData): RouterStateData
+interface RefreshCallback<UP, QP, SD> {
+	(routerState: RouterState<UP, QP, SD>, parentStateData: RouterStateData & SD, currentStateData: RouterStateData & SD): RouterStateData & SD;
 }
 
-interface TeardownCallback {
-	(stateData: RouterStateData): void;
+interface TeardownCallback<SD> {
+	(stateData: RouterStateData & SD): void;
 }
 
 ```
@@ -173,9 +173,9 @@ longer active.
 ### Start
  
 ```javascript
-start(history: RouterHistory,
-	routeFoundCallback: RouteFoundCallback,
-	routeNotFoundCallback?: RouteNotFoundCallback,
+start<UP, QP, SD>(history: RouterHistory,
+	routeFoundCallback: RouteFoundCallback<UP, QP, SD>,
+	routeNotFoundCallback?: RouteNotFoundCallback<UP, QP, SD>,
 	urlMissingRouteCallback?: UrlMissingRouteCallback,
 	transitionBegin?: TransitionBeginCallback,
 	transitionCancel?: TransitionCancelCallback,
@@ -186,12 +186,12 @@ will be asked to start tracking URL changes for this router. The callback functi
 attempts to activate a new state.
 
 ```javascript	
-interface RouteFoundCallback {
-	(routerState: RouterState): void;
+interface RouteFoundCallback<UP, QP, SD> {
+	(routerState: RouterState<UP, QP, SD>): void;
 }
 
-interface RouteNotFoundCallback {
-	(configPath: string, fullUrl: string, matchedConfigs: RouterConfig[], error: any): void;
+interface RouteNotFoundCallback<UP, QP, SD> {
+	(configPath: string | undefined, fullUrl: string | undefined, matchedConfigs: RouterConfig<UP, QP, SD>[] | undefined, error: any): void;
 }
 
 interface UrlMissingRouteCallback {
@@ -233,13 +233,13 @@ occurred while finding a new state.
 The most important callback is probably the `routeFoundCallback` and its argument `routerState`.
 
 ```javascript
-interface RouterState {
+interface RouterState<UP, QP, SD> {
 	configPath: string;
 	url: string;
-	urlParams: RouterUrlParams;
-	queryParams: RouterQueryParams;
-	historyTrackId: string;
-	data: RouterStateData;
+	urlParams: RouterUrlParams & UP;
+	queryParams: RouterQueryParams & QP;
+	historyTrackId?: string;
+	data: RouterStateData & SD;
 }
 ```
 
@@ -269,7 +269,7 @@ Call this method to stop the router from reacting to any URL changes or programm
 ### Get Current State
 
 ```javascript
-getCurrentState(): RouterState
+getCurrentState<UP, QP, SD>(): RouterState<UP, QP, SD>
 ```
 
 Call this method to get the currently active router state.
@@ -291,8 +291,8 @@ requestReload(): boolean
 ### Navigate To
 
 ```javascript
-navigateTo(configPath: string, urlParams: RouterUrlParams,
-	queryParams: RouterQueryParams, extraStateData: RouterStateData): Thenable<RouterState>
+navigateTo<UP, QP, SD>(configPath: string, urlParams: RouterUrlParams & UP,
+	queryParams: RouterQueryParams & QP, extraStateData: RouterStateData & SD): Promise<RouterState<UP, QP, SD>>
 ```
 
 - **configPath** A dot separated path of state names to the state that will be activated.
@@ -319,11 +319,20 @@ callbacks will also be called as expected.
 The data object of the activated state will have the `extraStateData` object merged into it in any
 callbacks triggered by this method.
 
+## Browser Compatibility
+
+For browsers without native Promises a polyfill is needed. The es6-promise is one possible polyfill.
+
+The router should be compatible with latest verions of Chrome, Firefox and Safari. IE8 should work
+with ES5 polyfills like es5-shim and es5-sham. IE9 and later should work with only a Promise polyfill.
+
+To get full history functionallity on IE8 and IE9 the `RouterBrowserHistory` must be configured with
+a history iframe element.
+
 ## TODO
 
 This is still a work in progress. Here are some of the things that needs to be done:
 
-- Test the use of non-hash URLs
 - More unit tests
 - More documentation and examples
 

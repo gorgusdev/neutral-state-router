@@ -1,0 +1,24 @@
+{
+  /*
+   * Possible values:
+   * - the name of a built-in config
+   * - the name of an NPM module which has a "main" file that exports a config object
+   * - a relative path to a JSON file
+   */
+  "extends": "tslint:recommended",
+  "rules": {
+      "indent": [
+          true,
+          "tabs"
+      ],
+      "triple-equals": [true, "allow-undefined-check"],
+      "quotemark": [true, "single", "jsx-double"],
+      "only-arrow-functions": false,
+      "interface-name": [true, "never-prefix"],
+      "object-literal-sort-keys": false,
+      "max-line-length": [true, 165],
+      "trailing-comma": [false],
+      "whitespace": [true, "check-decl", "check-operator", "check-module", "check-separator", "check-type"],
+      "member-ordering": [true, { "order": ["private-static-field", "protected-static-field", "public-static-field", "private-instance-field", "protected-instance-field", "public-instance-field", "constructor"] }]
+  }
+}
