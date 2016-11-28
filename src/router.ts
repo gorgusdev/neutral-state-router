@@ -60,6 +60,7 @@ export class Router {
 	private transitionId: number;
 	private lastDoneTransitionId: number;
 
+	private accumulatedPropNames: string[] = [];
 	protected rootConfig: RouterConfig<{}, {}, {}>;
 
 	constructor() {
@@ -84,6 +85,10 @@ export class Router {
 
 	public getCurrentState<UP, QP, SD>(): RouterState<UP, QP, SD> {
 		return this.currentState;
+	}
+
+	public setAccumulatedStateDataPropNames(propNames: string[]) {
+		this.accumulatedPropNames = propNames;
 	}
 
 	public isRunning(): boolean {
@@ -673,7 +678,7 @@ export class Router {
 			data: {}
 		};
 		let newStateDatas: RouterStateData[] = [];
-		let accumulatedDataProps: RouterAccumulatedPropMap = {};
+		let accumulatedDataProps: RouterAccumulatedPropMap = this.prepareAccumulatedPropNames();
 		const prefixLength = this.findCommonStatePrefix(newConfigs);
 		for(let n = 0; n < prefixLength; n++) {
 			const newConfig = newConfigs[n];
@@ -722,13 +727,23 @@ export class Router {
 		return length;
 	}
 
+	private prepareAccumulatedPropNames(): RouterAccumulatedPropMap {
+		let result: RouterAccumulatedPropMap = {};
+		if(this.accumulatedPropNames) {
+			for(let n = 0; n < this.accumulatedPropNames.length; n++) {
+				result[this.accumulatedPropNames[n]] = [];
+			}
+		}
+		return result;
+	}
+
 	private accumulateStateDataProps(accumulatedDataProps: RouterAccumulatedPropMap, data: RouterStateData) {
 		for(let name in data) {
 			if(!data.hasOwnProperty(name)) {
 				continue;
 			}
-			if(name && (name.charAt(0) === '+')) {
-				let values = accumulatedDataProps[name];
+			let values = accumulatedDataProps[name];
+			if((name && (name.charAt(0) === '+')) || (values !== undefined)) {
 				if(!values) {
 					values = [];
 				}
@@ -748,7 +763,11 @@ export class Router {
 			if(!accumulatedDataProps.hasOwnProperty(name)) {
 				continue;
 			}
-			data[name.substring(1)] = accumulatedDataProps[name];
+			if(name.charAt(0) === '+') {
+				data[name.substring(1)] = accumulatedDataProps[name];
+			} else {
+				data[name] = accumulatedDataProps[name];
+			}
 		}
 	}
 

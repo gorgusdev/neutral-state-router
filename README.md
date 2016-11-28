@@ -73,6 +73,11 @@ concatenated at the end of the accumulated array otherwise the value is simply p
 all matched states have been processed the accumulated arrays are added to the final data object
 with their respective keys without the initial plus (+) character.
 
+As an alternative to keys with a plus (+) the `setAccumulatedStateDataPropNames` can be called
+to set which state data keys to accumulate. Note that the property key names set by the method
+will be accumulated in all state data configurations.
+
+
 ### History
 
 To detect changed URLs and to update the current URL on programmtic state activation the router
@@ -273,6 +278,16 @@ getCurrentState<UP, QP, SD>(): RouterState<UP, QP, SD>
 ```
 
 Call this method to get the currently active router state.
+
+### Set Accumulated State Data Prop names
+
+```javascript
+setAccumulatedStateDataPropNames(propNames: string[])
+```
+- **propNames** An array of property key names that will be accumulated.
+
+Call this to set a list of property key names to be accumulated across all state data. The property
+key names should not begin with a plus (+).
 
 ### Is Running
 

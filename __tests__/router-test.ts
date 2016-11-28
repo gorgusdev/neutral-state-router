@@ -145,10 +145,18 @@ describe('Router', function() {
 					'b3': {
 						url: '/b3',
 						unrouted: true,
+						data: {
+							'+acc1': 'acc1_1',
+							acc2: ['acc2_1']
+						},
 						configs: {
 							'c1': {
 								url: '/c1',
-								reloadable: true
+								reloadable: true,
+								data: {
+									'+acc1': ['acc1_2'],
+									acc2: 'acc2_2'
+								}
 							}
 						}
 					},
@@ -290,6 +298,19 @@ describe('Router', function() {
 				}
 			});
 			router.navigateTo('a.b4.c1');
+			jest.runAllTimers();
+		});
+
+		it('will accumulate state data properties', function(done) {
+			router.setAccumulatedStateDataPropNames(['acc2']);
+			router.start<{}, {}, { acc1: string[], acc2: string[] }>(history, (routerState) => {
+				expect(routerState.data.acc1).toEqual(['acc1_1', 'acc1_2']);
+				expect(routerState.data.acc2).toEqual(['acc2_1', 'acc2_2']);
+				if(done) {
+					done();
+				}
+			});
+			router.navigateTo('a.b3.c1');
 			jest.runAllTimers();
 		});
 
@@ -555,5 +576,6 @@ describe('Router', function() {
 			router.triggerUpdateFromHistory();
 			jest.runAllTimers();
 		});
+
 	});
 });
