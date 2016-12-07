@@ -61,6 +61,7 @@ export class Router {
 	private lastDoneTransitionId: number;
 
 	private accumulatedPropNames: string[] = [];
+	private nonInheritedPropNames: string[] = [];
 	protected rootConfig: RouterConfig<{}, {}, {}>;
 
 	constructor() {
@@ -89,6 +90,10 @@ export class Router {
 
 	public setAccumulatedStateDataPropNames(propNames: string[]) {
 		this.accumulatedPropNames = propNames;
+	}
+
+	public setNonInheritedStateDataPropNames(propNames: string[]) {
+		this.nonInheritedPropNames = propNames;
 	}
 
 	public isRunning(): boolean {
@@ -680,26 +685,30 @@ export class Router {
 		let newStateDatas: RouterStateData[] = [];
 		let accumulatedDataProps: RouterAccumulatedPropMap = this.prepareAccumulatedPropNames();
 		const prefixLength = this.findCommonStatePrefix(newConfigs);
+		let lastStateData: RouterStateData | undefined = undefined;
 		for(let n = 0; n < prefixLength; n++) {
 			const newConfig = newConfigs[n];
 			if(newConfig.refreshCallback) {
-				newStateDatas.push(newConfig.refreshCallback(state, state.data, this.currentStateDatas[n]));
+				lastStateData = newConfig.refreshCallback(state, state.data, this.currentStateDatas[n]);
 			} else {
-				newStateDatas.push(this.currentStateDatas[n]);
+				lastStateData = this.currentStateDatas[n];
 			}
+			newStateDatas.push(lastStateData);
 			this.accumulateStateDataProps(accumulatedDataProps, newStateDatas[n]);
 			state.data = extend(true, state.data, newStateDatas[n]);
 		}
 		for(let n = prefixLength; n < newConfigs.length; n++) {
 			const newConfig = newConfigs[n];
 			if(newConfig.setupCallback) {
-				newStateDatas.push(newConfig.setupCallback(state, state.data, extend({}, newConfig.data || {})));
+				lastStateData = newConfig.setupCallback(state, state.data, extend({}, newConfig.data || {}));
 			} else {
-				newStateDatas.push(newConfig.data || {});
+				lastStateData = newConfig.data || {};
 			}
+			newStateDatas.push(lastStateData);
 			this.accumulateStateDataProps(accumulatedDataProps, newStateDatas[n]);
 			state.data = extend(true, state.data, newStateDatas[n]);
 		}
+		this.removeNonInheritedPropNames(state.data, lastStateData);
 		for(let n = this.currentConfigs.length - 1; n >= prefixLength; n--) {
 			const oldConfig = this.currentConfigs[n];
 			if(oldConfig.teardownCallback) {
@@ -725,6 +734,16 @@ export class Router {
 			length++;
 		}
 		return length;
+	}
+
+	private removeNonInheritedPropNames(data: RouterStateData, lastData: RouterStateData | undefined): void {
+		if(lastData) {
+			for(let n = 0; n < this.nonInheritedPropNames.length; n++) {
+				if(!lastData.hasOwnProperty(this.nonInheritedPropNames[n])) {
+					delete data[this.nonInheritedPropNames[n]];
+				}
+			}
+		}
 	}
 
 	private prepareAccumulatedPropNames(): RouterAccumulatedPropMap {

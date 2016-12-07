@@ -77,6 +77,12 @@ As an alternative to keys with a plus (+) the `setAccumulatedStateDataPropNames`
 to set which state data keys to accumulate. Note that the property key names set by the method
 will be accumulated in all state data configurations.
 
+The method `setNonInheritedStateDataPropNames` can be used to set a list of property keys that
+will exist in the merged state data object only if the keys exists in the state data object of
+the last matched state with a value other than `undefined`. The result will be that the
+properties set by `setNonInheritedStateDataPropNames` will not be inherited from parent
+configured states.
+
 
 ### History
 
@@ -288,6 +294,17 @@ setAccumulatedStateDataPropNames(propNames: string[])
 
 Call this to set a list of property key names to be accumulated across all state data. The property
 key names should not begin with a plus (+).
+
+### Set Non-Inherited State Data Prop names
+
+```javascript
+setNonInheritedStateDataPropNames(propNames: string[])
+```
+- **propNames** An array of property key names that will not be inherited.
+
+Call this to set a list of property key names that will exist in state data only if the last matched
+state's state data has the property key with a value other than `undefined`. The check for the property
+key will be done in the state data returned from the setup/refresh callback if it exists.
 
 ### Is Running
 
