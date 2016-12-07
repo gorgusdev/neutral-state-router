@@ -1,6 +1,6 @@
 {
   "name": "neutral-state-router",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A framework neutral client-side URL to state router",
   "main": "js/src/index.js",
   "typings": "js/src/index.d.ts",
