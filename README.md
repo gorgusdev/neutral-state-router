@@ -202,11 +202,11 @@ interface RouteFoundCallback<UP, QP, SD> {
 }
 
 interface RouteNotFoundCallback<UP, QP, SD> {
-	(configPath: string | undefined, fullUrl: string | undefined, matchedConfigs: RouterConfig<UP, QP, SD>[] | undefined, error: any): void;
+	(configPath: string | undefined, fullUrl: string | undefined, matchedConfigs: RouterConfig<UP, QP, SD>[] | undefined, error: any, transitionId: number): void;
 }
 
 interface UrlMissingRouteCallback {
-	(): void;
+	(transitionId: number): void;
 }
 
 interface TransitionBeginCallback {
@@ -250,6 +250,7 @@ interface RouterState<UP, QP, SD> {
 	urlParams: RouterUrlParams & UP;
 	queryParams: RouterQueryParams & QP;
 	historyTrackId?: string;
+	transitionId: number;
 	data: RouterStateData & SD;
 }
 ```
@@ -265,6 +266,8 @@ active for an URL then this property will be the `errorPath`.
 
 - **historyTrackId** This is an identifier for the current history entry. It can be used to store data that is
 to be restored when a user revisits a history entry.
+
+- **transitionId** This is the id of the transition that resulted in this router state.
 
 - **data** This is the merged data object from the active state and all its parent states. The properties in this
 object can be anything that will tell an application what to display for the active state.

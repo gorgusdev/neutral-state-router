@@ -75,6 +75,7 @@ export class Router {
 			urlParams: {},
 			queryParams: {},
 			historyTrackId: undefined,
+			transitionId: 0,
 			data: {}
 		};
 		this.currentStateDatas = [];
@@ -184,14 +185,14 @@ export class Router {
 				}
 				this.history.navigateTo(configPath, url);
 				const historyTrackId = this.history.getHistoryTrackId();
-				this.updateState(configPath, url, urlParams || {}, queryParams || {}, historyTrackId, configs, extraStateData);
+				this.updateState(configPath, url, urlParams || {}, queryParams || {}, historyTrackId, transitionIdSnapshot, configs, extraStateData);
 				if(this.routeFoundCallback) {
 					this.routeFoundCallback(this.currentState);
 				}
-				this.endCurrentTransition();
+				this.endCurrentTransition(transitionIdSnapshot);
 				resolve(this.currentState);
 			})['catch']((error: Error) => {
-				this.fireRouteNotFoundCallback(error, configPath, undefined, urlParams || {}, queryParams || {});
+				this.fireRouteNotFoundCallback(error, configPath, undefined, urlParams || {}, queryParams || {}, transitionIdSnapshot);
 				if(this.transitionCancel) {
 					this.transitionCancel(transitionIdSnapshot);
 				}
@@ -218,11 +219,13 @@ export class Router {
 		return transitionIdSnapshot !== this.transitionId;
 	}
 
-	private endCurrentTransition(): void {
-		if(this.transitionEnd) {
-			this.transitionEnd(this.transitionId);
+	private endCurrentTransition(transitionIdSnapshot: number): void {
+		if(transitionIdSnapshot === this.transitionId) {
+			if(this.transitionEnd) {
+				this.transitionEnd(this.transitionId);
+			}
+			this.lastDoneTransitionId = this.transitionId;
 		}
-		this.lastDoneTransitionId = this.transitionId;
 	}
 
 	private cancelCurrentTransition(transitionIdSnapshot: number): void {
@@ -268,7 +271,7 @@ export class Router {
 		const transitionIdSnapshot = this.beginNewTransition();
 		if(!url) {
 			if(this.urlMissingRouteCallback) {
-				this.urlMissingRouteCallback();
+				this.urlMissingRouteCallback(transitionIdSnapshot);
 			}
 			return;
 		}
@@ -281,10 +284,10 @@ export class Router {
 				if(this.isTransitionCancelled(transitionIdSnapshot)) {
 					return;
 				}
-				this.updateStateFromNamedConfig(configPath, url, urlParts.pathname, queryParams, historyTrackId, configs);
-				this.endCurrentTransition();
+				this.updateStateFromNamedConfig(configPath, url, urlParts.pathname, queryParams, historyTrackId, transitionIdSnapshot, configs);
+				this.endCurrentTransition(transitionIdSnapshot);
 			})['catch']((error: Error) => {
-				this.fireRouteNotFoundCallback(error, configPath, url, {}, queryParams);
+				this.fireRouteNotFoundCallback(error, configPath, url, {}, queryParams, transitionIdSnapshot);
 				this.cancelCurrentTransition(transitionIdSnapshot);
 			});
 		} else {
@@ -308,11 +311,11 @@ export class Router {
 					this.history.reloadAtUrl(url);
 				}
 				const urlParams: RouterUrlParams = this.buildUrlParams(newConfig.pathParams, configMatch.pathMatches);
-				this.updateState(configMatch.configPath, url, urlParams, queryParams, historyTrackId, configMatch.configMatches, undefined);
+				this.updateState(configMatch.configPath, url, urlParams, queryParams, historyTrackId, transitionIdSnapshot, configMatch.configMatches, undefined);
 				if(this.routeFoundCallback) {
 					this.routeFoundCallback(this.currentState);
 				}
-				this.endCurrentTransition();
+				this.endCurrentTransition(transitionIdSnapshot);
 				return undefined;
 			}).then((configs: RouterPossibleConfigs) => {
 				if(!configs) {
@@ -321,10 +324,10 @@ export class Router {
 				if(this.isTransitionCancelled(transitionIdSnapshot)) {
 					return;
 				}
-				this.updateStateFromNamedConfig(errorPath || '', url, urlParts.pathname, queryParams, historyTrackId, configs);
-				this.endCurrentTransition();
+				this.updateStateFromNamedConfig(errorPath || '', url, urlParts.pathname, queryParams, historyTrackId, transitionIdSnapshot, configs);
+				this.endCurrentTransition(transitionIdSnapshot);
 			})['catch']((error: Error) => {
-				this.fireRouteNotFoundCallback(error, undefined, url, {}, queryParams);
+				this.fireRouteNotFoundCallback(error, undefined, url, {}, queryParams, transitionIdSnapshot);
 				this.cancelCurrentTransition(transitionIdSnapshot);
 			});
 		}
@@ -336,6 +339,7 @@ export class Router {
 				urlPath: string,
 				queryParams: RouterQueryParams,
 				historyTrackId: string | undefined,
+				transitionId: number,
 				configs: RouterConfig<{}, {}, {}>[]) {
 		const newConfig: RouterConfigInternal = configs[configs.length - 1];
 		if(newConfig.unrouted) {
@@ -345,7 +349,7 @@ export class Router {
 			this.history.reloadAtUrl(url);
 		}
 		const urlParams: RouterUrlParams = this.findAndBuildUrlParams(urlPath, configs);
-		this.updateState(configPath, url, urlParams, queryParams, historyTrackId, configs, undefined);
+		this.updateState(configPath, url, urlParams, queryParams, historyTrackId, transitionId, configs, undefined);
 		if(this.routeFoundCallback) {
 			this.routeFoundCallback(this.currentState);
 		}
@@ -654,13 +658,14 @@ export class Router {
 				configPath: string | undefined,
 				url: string | undefined,
 				urlParams: RouterUrlParams,
-				queryParams: RouterQueryParams) {
+				queryParams: RouterQueryParams, 
+				transitionId: number) {
 		if(this.routeNotFoundCallback) {
 			let matchedConfigs: RouterConfig<{}, {}, {}>[] | undefined = undefined;
 			if(error instanceof RouterNotFoundException) {
 				matchedConfigs = (<RouterNotFoundException<any, any, any>>error).matched;
 			}
-			this.routeNotFoundCallback(configPath, url, matchedConfigs, error);
+			this.routeNotFoundCallback(configPath, url, matchedConfigs, error, transitionId);
 		} else {
 			this.logError(error);
 		}
@@ -672,6 +677,7 @@ export class Router {
 				urlParams: RouterUrlParams,
 				queryParams: RouterQueryParams,
 				historyTrackId: string | undefined,
+				transitionId: number,
 				newConfigs: RouterConfig<{}, {}, {}>[],
 				extraStateData: RouterStateData | undefined) {
 		const state: RouterState<any, any, any> = {
@@ -680,6 +686,7 @@ export class Router {
 			urlParams: urlParams,
 			queryParams: queryParams,
 			historyTrackId: historyTrackId,
+			transitionId: transitionId,
 			data: {}
 		};
 		let newStateDatas: RouterStateData[] = [];

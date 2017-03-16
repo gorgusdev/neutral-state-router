@@ -577,5 +577,30 @@ describe('Router', function() {
 			jest.runAllTimers();
 		});
 
+		it('correctly cancels transition when navigating in the state found callback', function(done) {
+			const beginFn = (<any>jest).genMockFunction();
+			const cancelFn = (<any>jest).genMockFunction();
+			const endFn = (<any>jest).genMockFunction();
+			router.start(history, (routerState) => {
+				if(routerState.configPath === 'a') {
+					router.navigateTo('a.b1').then(() => {
+						expect(beginFn.mock.calls.length).toBe(2);
+						expect(beginFn.mock.calls[0][0]).toBe(1);
+						expect(beginFn.mock.calls[1][0]).toBe(2);
+						expect(cancelFn.mock.calls.length).toBe(1);
+						expect(cancelFn.mock.calls[0][0]).toBe(1);
+						expect(endFn.mock.calls.length).toBe(1);
+						expect(endFn.mock.calls[0][0]).toBe(2);
+						if(done) {
+							done();
+						}
+					});
+					jest.runAllTimers();
+				}
+			}, () => {}, () => {}, beginFn, cancelFn, endFn);
+			router.navigateTo('a');
+			jest.runAllTimers();
+		});
+
 	});
 });

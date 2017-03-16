@@ -19,6 +19,7 @@ export interface RouterState<UP, QP, SD> {
 	urlParams: RouterUrlParams & UP;
 	queryParams: RouterQueryParams & QP;
 	historyTrackId?: string;
+	transitionId: number;
 	data: RouterStateData & SD;
 }
 
@@ -61,11 +62,11 @@ export interface RouteFoundCallback<UP, QP, SD> {
 }
 
 export interface RouteNotFoundCallback<UP, QP, SD> {
-	(configPath: string | undefined, fullUrl: string | undefined, matchedConfigs: RouterConfig<UP, QP, SD>[] | undefined, error: any): void;
+	(configPath: string | undefined, fullUrl: string | undefined, matchedConfigs: RouterConfig<UP, QP, SD>[] | undefined, error: any, transitionId: number): void;
 }
 
 export interface UrlMissingRouteCallback {
-	(): void;
+	(transitionId: number): void;
 }
 
 export interface TransitionBeginCallback {
