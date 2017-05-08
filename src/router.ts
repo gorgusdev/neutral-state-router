@@ -473,7 +473,9 @@ export class Router {
 											|| (!subMatch.prefixMatch
 												&& bestMatch.prefixMatch)
 											|| (subMatch.configMatches
-												&& (!bestMatch.configMatches || (subMatch.configMatches.length > bestMatch.configMatches.length)))) {
+												&& (!bestMatch.configMatches
+													|| ((subMatch.prefixMatch === bestMatch.prefixMatch) && (subMatch.configMatches.length > bestMatch.configMatches.length))))
+									) {
 										bestMatch = subMatch;
 									}
 								}
