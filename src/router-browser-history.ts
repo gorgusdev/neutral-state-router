@@ -97,8 +97,7 @@ export class RouterBrowserHistory implements RouterHistory {
 			location.hash = this.buildFullHashUrl(url);
 			location.reload(true);
 		} else {
-			location.pathname = this.urlPathPrefix + url;
-			location.reload(true);
+			location.href = this.urlPathPrefix + url;
 		}
 	}
 
@@ -126,7 +125,7 @@ export class RouterBrowserHistory implements RouterHistory {
 			if(this.urlPathPrefix && (location.pathname.substring(0, this.urlPathPrefix.length + 1) !== this.urlPathPrefix + '/')) {
 				return undefined;
 			}
-			return location.pathname.substring(this.urlPathPrefix ? this.urlPathPrefix.length : 0);
+			return location.pathname.substring(this.urlPathPrefix ? this.urlPathPrefix.length : 0) + location.search;
 		}
 	}
 

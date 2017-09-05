@@ -280,13 +280,17 @@ describe('Router', function() {
 
 		it('will ask history to reload when navigating to reloadable state', function(done) {
 			router.start(history, (routerState) => {
-				expect((<any>history.reloadAtUrl).mock.calls.length).toBe(1);
 				if(done) {
-					done();
+					done.fail();
 				}
 			});
 			router.requestReload();
 			router.navigateTo('a.b3.c1');
+			history.reloadAtUrl = function() {
+				if(done) {
+					done();
+				}
+			};
 			jest.runAllTimers();
 		});
 
@@ -534,9 +538,8 @@ describe('Router', function() {
 
 		it('reloads URL when requested', function(done) {
 			router.start(history, (routerState) => {
-				expect((<any>history.reloadAtUrl).mock.calls.length).toBe(1);
 				if(done) {
-					done();
+					done.fail();
 				}
 			}, () => {
 				if(done) {
@@ -551,6 +554,11 @@ describe('Router', function() {
 			(<any>history.getUrl).mockReturnValue('/a/b3/c1');
 			(<any>history.getConfigPath).mockReturnValue(null);
 			(<any>history.getHistoryTrackId).mockReturnValue('historyTrack1');
+			history.reloadAtUrl = function() {
+				if(done) {
+					done();
+				}
+			};
 			router.triggerUpdateFromHistory();
 			jest.runAllTimers();
 		});

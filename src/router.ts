@@ -182,15 +182,16 @@ export class Router {
 				const url = this.buildConfigStateUrl(configs, urlParams || {}, queryParams || {});
 				if(this.pendingReload && newConfig.url && newConfig.reloadable) {
 					this.history.reloadAtUrl(url);
+				} else {
+					this.history.navigateTo(configPath, url);
+					const historyTrackId = this.history.getHistoryTrackId();
+					this.updateState(configPath, url, urlParams || {}, queryParams || {}, historyTrackId, transitionIdSnapshot, configs, extraStateData);
+					if(this.routeFoundCallback) {
+						this.routeFoundCallback(this.currentState);
+					}
+					this.endCurrentTransition(transitionIdSnapshot);
+					resolve(this.currentState);
 				}
-				this.history.navigateTo(configPath, url);
-				const historyTrackId = this.history.getHistoryTrackId();
-				this.updateState(configPath, url, urlParams || {}, queryParams || {}, historyTrackId, transitionIdSnapshot, configs, extraStateData);
-				if(this.routeFoundCallback) {
-					this.routeFoundCallback(this.currentState);
-				}
-				this.endCurrentTransition(transitionIdSnapshot);
-				resolve(this.currentState);
 			})['catch']((error: Error) => {
 				this.fireRouteNotFoundCallback(error, configPath, undefined, urlParams || {}, queryParams || {}, transitionIdSnapshot);
 				if(this.transitionCancel) {
@@ -309,13 +310,14 @@ export class Router {
 				const newConfig: RouterConfigInternal = configMatch.configMatches[configMatch.configMatches.length - 1];
 				if(this.pendingReload && newConfig.url && newConfig.reloadable) {
 					this.history.reloadAtUrl(url);
+				} else {
+					const urlParams: RouterUrlParams = this.buildUrlParams(newConfig.pathParams, configMatch.pathMatches);
+					this.updateState(configMatch.configPath, url, urlParams, queryParams, historyTrackId, transitionIdSnapshot, configMatch.configMatches, undefined);
+					if(this.routeFoundCallback) {
+						this.routeFoundCallback(this.currentState);
+					}
+					this.endCurrentTransition(transitionIdSnapshot);
 				}
-				const urlParams: RouterUrlParams = this.buildUrlParams(newConfig.pathParams, configMatch.pathMatches);
-				this.updateState(configMatch.configPath, url, urlParams, queryParams, historyTrackId, transitionIdSnapshot, configMatch.configMatches, undefined);
-				if(this.routeFoundCallback) {
-					this.routeFoundCallback(this.currentState);
-				}
-				this.endCurrentTransition(transitionIdSnapshot);
 				return undefined;
 			}).then((configs: RouterPossibleConfigs) => {
 				if(!configs) {
@@ -347,11 +349,12 @@ export class Router {
 		}
 		if(this.pendingReload && newConfig.url && newConfig.reloadable) {
 			this.history.reloadAtUrl(url);
-		}
-		const urlParams: RouterUrlParams = this.findAndBuildUrlParams(urlPath, configs);
-		this.updateState(configPath, url, urlParams, queryParams, historyTrackId, transitionId, configs, undefined);
-		if(this.routeFoundCallback) {
-			this.routeFoundCallback(this.currentState);
+		} else {
+			const urlParams: RouterUrlParams = this.findAndBuildUrlParams(urlPath, configs);
+			this.updateState(configPath, url, urlParams, queryParams, historyTrackId, transitionId, configs, undefined);
+			if(this.routeFoundCallback) {
+				this.routeFoundCallback(this.currentState);
+			}
 		}
 	}
 
@@ -660,7 +663,7 @@ export class Router {
 				configPath: string | undefined,
 				url: string | undefined,
 				urlParams: RouterUrlParams,
-				queryParams: RouterQueryParams, 
+				queryParams: RouterQueryParams,
 				transitionId: number) {
 		if(this.routeNotFoundCallback) {
 			let matchedConfigs: RouterConfig<{}, {}, {}>[] | undefined = undefined;
