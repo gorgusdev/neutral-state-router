@@ -134,7 +134,7 @@ export class Router {
 		urlParams?: RouterUrlParams & UP,
 		queryParams?: RouterQueryParams & QP
 	): string | undefined {
-		if(this.isRunning()) {
+		if(!this.isRunning()) {
 			throw new RouterException('Router not running');
 		}
 		const configPathParts: string[] = configPath.split('.');
