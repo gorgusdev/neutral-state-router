@@ -12,6 +12,7 @@ export interface RouterHistory {
 	navigateTo(configPath: string, url: string): void;
 
 	getUrl(): string | undefined;
+	getFullUrl(configUrl: string): string;
 	getConfigPath(): string | undefined;
 	getHistoryTrackId(): string | undefined;
 

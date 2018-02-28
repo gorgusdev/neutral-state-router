@@ -288,6 +288,32 @@ getCurrentState<UP, QP, SD>(): RouterState<UP, QP, SD>
 
 Call this method to get the currently active router state.
 
+### Get Config Url
+
+```javascript
+getConfigUrl<UP, QP>(configPath: string, urlParams: RouterUrlParams & UP,
+	queryParams: RouterQueryParams & QP): string | undefined
+```
+- **configPath** A dot separated path of state names to the state that will be activated.
+
+- **urlParams** A map of named URL parameters that will be used to build the URL of the
+activated state.
+
+- **queryParams** A map of named query string parameters that will be added to the URL of the
+activated state.
+
+Call this method to get the path part of an URL to the router state referenced by `configPath`.
+The path will include any URL path prefix setup in the history object.
+If the URL of the state to activate has any parameters they will be filled in from the
+`urlParams` argument. The final URL will have a query string added from the `queryParams` argument.
+
+The returned URL path will be the closest URL to the router state referenced in `configPath` if the
+router state itself doesn't have an URL.
+
+No extension of router configs will happen as a result of calling this method.
+
+**NOTE** The router must be started before this method is called.
+
 ### Set Accumulated State Data Prop names
 
 ```javascript

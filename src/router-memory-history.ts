@@ -29,6 +29,10 @@ export class RouterMemoryHistory implements RouterHistory {
 		return '';
 	}
 
+	public getFullUrl(configUrl: string): string {
+		return '';
+	}
+
 	public getConfigPath(): string | undefined {
 		return undefined;
 	}

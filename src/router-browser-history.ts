@@ -129,6 +129,14 @@ export class RouterBrowserHistory implements RouterHistory {
 		}
 	}
 
+	public getFullUrl(configUrl: string): string {
+		if(this.useHashMode) {
+			return this.buildFullHashUrl(configUrl);
+		} else {
+			return this.urlPathPrefix + configUrl;
+		}
+	}
+
 	private getUrlFromOtherMode(): string | undefined {
 		if(this.useHashMode) {
 			let prefix = this.urlPathPrefix;

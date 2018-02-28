@@ -116,6 +116,8 @@ router.start(hist, (state) => {
 	console.log('Transition End: ' + transitionId);
 });
 
+console.log('Url for a.b1.c4 = ', router.getConfigUrl('a.b1.c4', { arg1: 'testArg' }));
+
 let elem = document.getElementById('b1c1');
 if(elem && elem.addEventListener) {
 	elem.addEventListener('click', (event) => {

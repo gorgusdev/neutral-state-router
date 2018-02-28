@@ -129,6 +129,32 @@ export class Router {
 		}
 	}
 
+	public getConfigUrl<UP, QP>(
+		configPath: string,
+		urlParams?: RouterUrlParams & UP,
+		queryParams?: RouterQueryParams & QP
+	): string | undefined {
+		if(this.isRunning()) {
+			throw new RouterException('Router not running');
+		}
+		const configPathParts: string[] = configPath.split('.');
+		let configs: RouterConfig<{}, {}, {}>[] = [];
+		let currentConfig: RouterConfigInternal | undefined = undefined;
+		let parentConfig = this.rootConfig;
+		for(let n = 0; n < configPathParts.length; n++) {
+			const configPathPart = configPathParts[n];
+			const parentConfigs = parentConfig.configs || {};
+			currentConfig = parentConfigs[configPathPart];
+			if(currentConfig) {
+				configs = configs.concat([currentConfig]);
+				parentConfig = currentConfig;
+			} else {
+				return;
+			}
+		}
+		return this.history.getFullUrl(this.buildConfigStateUrl(configs, urlParams || {}, queryParams || {}));
+	}
+
 	public start<UP, QP, SD>(
 				history: RouterHistory,
 				routeFoundCallback: RouteFoundCallback<UP, QP, SD>,
