@@ -46,9 +46,9 @@ export class Router {
 	private routeFoundCallback: RouteFoundCallback<any, any, any>;
 	private routeNotFoundCallback: RouteNotFoundCallback<any, any, any> | undefined;
 	private urlMissingRouteCallback: UrlMissingRouteCallback | undefined;
-	private transitionBegin: TransitionBeginCallback | undefined;
-	private transitionCancel: TransitionCancelCallback | undefined;
-	private transitionEnd: TransitionEndCallback | undefined;
+	private transitionBegin: TransitionBeginCallback<any, any, any> | undefined;
+	private transitionCancel: TransitionCancelCallback<any, any, any> | undefined;
+	private transitionEnd: TransitionEndCallback<any, any, any> | undefined;
 	private running: boolean;
 
 	private pendingReload: boolean;
@@ -160,9 +160,9 @@ export class Router {
 				routeFoundCallback: RouteFoundCallback<UP, QP, SD>,
 				routeNotFoundCallback?: RouteNotFoundCallback<UP, QP, SD>,
 				urlMissingRouteCallback?: UrlMissingRouteCallback,
-				transitionBegin?: TransitionBeginCallback,
-				transitionCancel?: TransitionCancelCallback,
-				transitionEnd?: TransitionEndCallback): void {
+				transitionBegin?: TransitionBeginCallback<UP, QP, SD>,
+				transitionCancel?: TransitionCancelCallback<UP, QP, SD>,
+				transitionEnd?: TransitionEndCallback<UP, QP, SD>): void {
 		if(this.isRunning()) {
 			throw new RouterException('Router already running');
 		}
@@ -194,7 +194,7 @@ export class Router {
 		if(!this.isRunning()) {
 			throw new RouterException('Router is not running');
 		}
-		const transitionIdSnapshot = this.beginNewTransition();
+		const transitionIdSnapshot = this.beginNewTransition(configPath, urlParams, queryParams, extraStateData);
 		return new Promise<RouterState<UP, QP, SD>>((resolve, reject) => {
 			const configPathParts: string[] = configPath.split('.');
 			this.findRouterConfigByName(configPathParts, 0, this.rootConfig, []).then((configs) => {
@@ -215,29 +215,34 @@ export class Router {
 					if(this.routeFoundCallback) {
 						this.routeFoundCallback(this.currentState);
 					}
-					this.endCurrentTransition(transitionIdSnapshot);
+					this.endCurrentTransition(transitionIdSnapshot, configPath, urlParams, queryParams, extraStateData);
 					resolve(this.currentState);
 				}
 			})['catch']((error: Error) => {
 				this.fireRouteNotFoundCallback(error, configPath, undefined, urlParams || {}, queryParams || {}, transitionIdSnapshot);
 				if(this.transitionCancel) {
-					this.transitionCancel(transitionIdSnapshot);
+					this.transitionCancel(transitionIdSnapshot, configPath, urlParams, queryParams, extraStateData);
 				}
 				reject(error);
 			});
 		});
 	}
 
-	private beginNewTransition(): number {
+	private beginNewTransition<UP, QP, SD>(
+		configPath?: string,
+		urlParams?: RouterUrlParams & UP,
+		queryParams?: RouterQueryParams & QP,
+		extraStateData?: RouterStateData & SD
+	): number {
 		if(this.lastDoneTransitionId < this.transitionId) {
 			if(this.transitionCancel) {
-				this.transitionCancel(this.transitionId);
+				this.transitionCancel(this.transitionId, configPath, urlParams, queryParams, extraStateData);
 			}
 			this.lastDoneTransitionId = this.transitionId;
 		}
 		this.transitionId = this.transitionId + 1;
 		if(this.transitionBegin) {
-			this.transitionBegin(this.transitionId);
+			this.transitionBegin(this.transitionId, configPath, urlParams, queryParams, extraStateData);
 		}
 		return this.transitionId;
 	}
@@ -246,10 +251,16 @@ export class Router {
 		return transitionIdSnapshot !== this.transitionId;
 	}
 
-	private endCurrentTransition(transitionIdSnapshot: number): void {
+	private endCurrentTransition<UP, QP, SD>(
+		transitionIdSnapshot: number,
+		configPath?: string,
+		urlParams?: RouterUrlParams & UP,
+		queryParams?: RouterQueryParams & QP,
+		extraStateData?: RouterStateData & SD
+	): void {
 		if(transitionIdSnapshot === this.transitionId) {
 			if(this.transitionEnd) {
-				this.transitionEnd(this.transitionId);
+				this.transitionEnd(this.transitionId, configPath, urlParams, queryParams, extraStateData);
 			}
 			this.lastDoneTransitionId = this.transitionId;
 		}

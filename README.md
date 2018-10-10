@@ -209,16 +209,19 @@ interface UrlMissingRouteCallback {
 	(transitionId: number): void;
 }
 
-interface TransitionBeginCallback {
-	(transitionId: number): void;
+interface TransitionBeginCallback<UP, QP, SD> {
+	(transitionId: number, configPath?: string, urlParams?: RouterUrlParams & UP,
+	queryParams?: RouterQueryParams & QP, extraStateData?: RouterStateData & SD): void;
 }
 
-interface TransitionCancelCallback {
-	(transitionId: number): void;
+interface TransitionCancelCallback<UP, QP, SD> {
+	(transitionId: number, configPath?: string, urlParams?: RouterUrlParams & UP,
+	queryParams?: RouterQueryParams & QP, extraStateData?: RouterStateData & SD): void;
 }
 
-interface TransitionEndCallback {
-	(transitionId: number): void;
+interface TransitionEndCallback<UP, QP, SD> {
+	(transitionId: number, configPath?: string, urlParams?: RouterUrlParams & UP,
+	queryParams?: RouterQueryParams & QP, extraStateData?: RouterStateData & SD): void;
 }
 ```
 
@@ -233,13 +236,19 @@ is an exception representing the failed state activation.
 could be the case if a hash based history is used but no hash part is present in the URL.
 
 - **transitionBegin** This callback will be called when the router starts the process of finding a new state to
-activate.
+activate. If a call to method `navigateTo` triggered this transition the parameters `configPath`, `urlParams`,
+`queryParams` and `extraStateData` from that call will be provided to this callback. Otherwise all parameters except
+`transitionId` will be `undefined`.
 
 - **transitionCancel** This callback will be called when the router cancels the current process to find a new state
-to activate. The reason for cancelling can be either an error or that a new URL change or programmtic activation
-occurred while finding a new state.
+to activate. The reason for cancelling can be either an error or that a new URL change or programmatic activation
+occurred while finding a new state. If a call to method `navigateTo` caused the current transition to be cancelled
+the parameters `configPath`, `urlParams`, `queryParams` and `extraStateData` from that call will be provided to
+this callback. Otherwise all parameters except `transitionId` will be `undefined`.
 
-- **transitionEnd** This callback will be called when the router finished the activating a new state.
+- **transitionEnd** This callback will be called when the router finished the activating a new state. If a call to method
+`navigateTo` triggered this transition the parameters `configPath`, `urlParams`, `queryParams` and `extraStateData` from
+that call will be provided to this callback. Otherwise all parameters except `transitionId` will be `undefined`.
 
 The most important callback is probably the `routeFoundCallback` and its argument `routerState`.
 

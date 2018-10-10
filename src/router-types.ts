@@ -69,14 +69,14 @@ export interface UrlMissingRouteCallback {
 	(transitionId: number): void;
 }
 
-export interface TransitionBeginCallback {
-	(transitionId: number): void;
+export interface TransitionBeginCallback<UP, QP, SD> {
+	(transitionId: number, configPath?: string, urlParams?: RouterUrlParams & UP, queryParams?: RouterQueryParams & QP, extraStateData?: RouterStateData & SD): void;
 }
 
-export interface TransitionCancelCallback {
-	(transitionId: number): void;
+export interface TransitionCancelCallback<UP, QP, SD> {
+	(transitionId: number, configPath?: string, urlParams?: RouterUrlParams & UP, queryParams?: RouterQueryParams & QP, extraStateData?: RouterStateData & SD): void;
 }
 
-export interface TransitionEndCallback {
-	(transitionId: number): void;
+export interface TransitionEndCallback<UP, QP, SD> {
+	(transitionId: number, configPath?: string, urlParams?: RouterUrlParams & UP, queryParams?: RouterQueryParams & QP, extraStateData?: RouterStateData & SD): void;
 }

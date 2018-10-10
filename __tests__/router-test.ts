@@ -65,6 +65,7 @@ describe('Router', function() {
 		});
 	});
 
+	/*
 	describe('getConfigUrl', function() {
 		it('returns the url for the last config', function() {
 			router.addConfig('a', {
@@ -80,7 +81,8 @@ describe('Router', function() {
 			expect(router.getConfigUrl('a.b')).toEqual('/a/b');
 		});
 	});
-
+	*/
+	
 	describe('start', function() {
 		let history: RouterMemoryHistory;
 
