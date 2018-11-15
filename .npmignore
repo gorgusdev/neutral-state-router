@@ -1,7 +1,10 @@
 .vscode
-js/__debug__/*
-js/__tests__/*
+.nyc_output
 coverage
 html-report
 tsconfig.json
 npm-debug.log*
+yarn-error.log*
+yarn.lock
+cypress
+tests

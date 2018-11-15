@@ -1,5 +1,9 @@
 node_modules/*
 js/*
-coverage/*
+cjs/*
+esm/*
+.nyc_output
+coverage
 html-report/*
 npm-debug.log*
+yarn-error.log*

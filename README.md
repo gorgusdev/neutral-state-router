@@ -49,6 +49,10 @@ state can't be found for a state and that state has a `routeExtensionCallback` t
 be used to provide an object that will be merged into `configs` of the state. The callback will
 only be called once and it has to return a promise or promise like object.
 
+The `RouterConfigExtensionManager` class can be used to create the result of an extension callback.
+Using the `RouterConfigExtensionManager` configured states with a specified base path of names can
+be built up just like on the main router object.
+
 When matching to an URL the list of matched states might be only a prefix match of the full URL.
 In that case the router will search backwards in the list for a state with an `errorPath` value.
 The activated state will then become the state identified by the dot separated path from `errorPath`
@@ -87,25 +91,147 @@ configured states.
 ### History
 
 To detect changed URLs and to update the current URL on programmtic state activation the router
-uses a history object. The standard history object is the `RouterBrowserHistroy` which will
-use the history API and/or hash change events to detect URL changes. There is also a feature to
-use an iframe to manage the browser history on IE 9 and IE 8.
+uses a history object. The standard history object is the `RouterHistroyManager` which will
+use the history API and/or hash change events to detect URL changes.
 
-With `RouterBrowserHistory` each history entry in the browser is assigned a `historyTrackId`.
+With `RouterHistoryManager` each history entry in the browser is assigned a `historyTrackId`.
 This ID will come from a counter stored in the `sessionStorage` of the browser. Using the
 `historyTrackId` an application can use `sessionStorage` to store data associated with a
 browser history entry that can be restored when a previous state is revisited by the user.
 
 ## Interface
 
-The router module is written in TypeScript and the normal way to use the router is to use the
-singleton instance of the router that is the default export of the module. The router interface
-has the following methods:
+The router class interface has the following methods:
+
+### Constructor
+
+```javascript
+Router(options: {
+	historyManager: RouterHistoryManager,
+	configManager?: RouterConfigManager<UP, QP, SD, CX>,
+	stateManager?: RouterStateManager<UP, QP, SD, CX>,
+	routeFoundCallback: RouteFoundCallback<UP, QP, SD, CX>,
+	routeNotFoundCallback?: RouteNotFoundCallback<UP, QP, SD, CX>,
+	urlMissingRouteCallback?: UrlMissingRouteCallback<CX>,
+	transitionBegin?: TransitionBeginCallback<UP, QP, SD, CX>,
+	transitionCancel?: TransitionCancelCallback<UP, QP, SD, CX>,
+	transitionEnd?: TransitionEndCallback<UP, QP, SD, CX>,
+	contextFromEventCallback?: ContextFromEventCallback<CX>
+})
+```
+
+```javascript
+interface RouteFoundCallback<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX> {
+    (routerState: RouterState<UP, QP, SD>, context?: CX): void;
+}
+
+interface RouteNotFoundCallback<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX> {
+    (
+        configPath: string | undefined,
+        fullUrl: string | undefined,
+        matchedConfigs: RouterConfig<UP, QP, SD, CX>[] | undefined,
+        error: any,
+        transitionId: number,
+        context?: CX
+    ): void;
+}
+
+interface UrlMissingRouteCallback<CX> {
+    (transitionId: number, context?: CX): void;
+}
+
+interface TransitionBeginCallback<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX> {
+    (transitionId: number, configPath?: string, urlParams?: UP, queryParams?: QP, extraStateData?: SD, context?: CX): void;
+}
+
+interface TransitionCancelCallback<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX> {
+    (transitionId: number, configPath?: string, urlParams?: UP, queryParams?: QP, extraStateData?: SD, context?: CX): void;
+}
+
+interface TransitionEndCallback<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX> {
+    (transitionId: number, configPath?: string, urlParams?: UP, queryParams?: QP, extraStateData?: SD, context?: CX): void;
+}
+
+interface ContextFromEventCallback<CX> {
+    (): CX;
+}
+```
+
+- **historyManager** This manager object is mandatory and will interface with the History API in
+the browser. Normally an instance of the `RouterHistoryManager` should be used.
+
+- **configManager** This is an optional manager object that will handle the configured states.
+
+- **stateManager** This is an optional manager object that will handle the current active state
+of the router.
+
+- **routeFoundCallback** This callback will be called when a new state is successfully activated.
+
+- **routeNotFoundCallback** This callback will be called when a new state could not be activated. The `configPath`
+and `fullUrl` arguments refer to the state and / or URL that was requested. The `matchedConfigs` argument
+contain a prefix of states matched when a changed URL couldn't be fully matched. Finally the `error` argument
+is an exception representing the failed state activation.
+
+- **urlMissingRouteCallback** This callback will be called when there is no URL available to respond to. This
+could be the case if a hash based history is used but no hash part is present in the URL.
+
+- **transitionBegin** This callback will be called when the router starts the process of finding a new state to
+activate. If a call to method `navigateTo` triggered this transition the parameters `configPath`, `urlParams`,
+`queryParams` and `extraStateData` from that call will be provided to this callback. Otherwise all parameters except
+`transitionId` will be `undefined`.
+
+- **transitionCancel** This callback will be called when the router cancels the current process to find a new state
+to activate. The reason for cancelling can be either an error or that a new URL change or programmatic activation
+occurred while finding a new state. If a call to method `navigateTo` caused the current transition to be cancelled
+the parameters `configPath`, `urlParams`, `queryParams` and `extraStateData` from that call will be provided to
+this callback. Otherwise all parameters except `transitionId` will be `undefined`.
+
+- **transitionEnd** This callback will be called when the router finished the activating a new state. If a call to method
+`navigateTo` triggered this transition the parameters `configPath`, `urlParams`, `queryParams` and `extraStateData` from
+that call will be provided to this callback. Otherwise all parameters except `transitionId` will be `undefined`.
+
+- **contextFromEventCallback** This callback will be called when a state change is trigger by a browser event. The
+return value from this callback will be used as the context parameter to the other callbacks on the router.
+
+The constructor expects a single object as argument. Properties on the object are used to configure the router.
+The most important and mandatory properties are the `historyManager` and `routeFoundCallback`. The `historyManager`
+object will be asked to tracking URL changes for this router. The callback functions will be called when the router
+attempts to activate a new state. The most important callback is `routeFoundCallback` and its parameter `routerState`
+that describes the new state of the router.
+
+```javascript
+interface RouterState<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData> {
+    configPath: string;
+    url: string;
+    urlParams: UP;
+    queryParams: QP;
+    historyTrackId?: string;
+    transitionId: number;
+    data: SD;
+}
+```
+
+- **configPath** This is the dot separated name of the state that is active. If a state from an `errorPath` is
+active for an URL then this property will be the `errorPath`.
+
+- **url** This is the URL from the browser.
+
+- **urlParams** This is a map with the named URL parameters extracted from the active URL.
+
+- **queryParams** This is a map with any query string values from the active URL.
+
+- **historyTrackId** This is an identifier for the current history entry. It can be used to store data that is
+to be restored when a user revisits a history entry.
+
+- **transitionId** This is the id of the transition that resulted in this router state.
+
+- **data** This is the merged data object from the active state and all its parent states. The properties in this
+object can be anything that will tell an application what to display for the active state.
 
 ### Add Config
 
 ```javascript
-addConfig(configPath: string, config: RouterConfig)
+addConfig(configPath: string, config: RouterConfig<UP, QP, SD, CX>): void
 ```
 - **configPath** A dot separated path of state names to the state that will be configured.
 
@@ -116,33 +242,37 @@ multiple times to incrementally build up the configuration. Any states named by 
 that doesn't exist will be created as empty states.
 
 ```javascript
-interface RouterConfig<UP, QP, SD> {
+interface RouterConfig<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX> {
 	url?: string;
 	unrouted?: boolean;
 	reloadable?: boolean;
 	errorPath?: string;
 	data?: RouterStateData & SD;
-	configs?: RouterConfigMap<UP, QP, SD>;
-	routeExtensionCallback?: RouteExtensionCallback<UP, QP, SD>;
-	setupCallback?: SetupCallback<UP, QP, SD>;
-	refreshCallback?: RefreshCallback<UP, QP, SD>;
-	teardownCallback?: TeardownCallback<SD>;
+    configs?: RouterConfigMap<UP, QP, SD, CX>;
+    routeExtensionCallback?: RouteExtensionCallback<UP, QP, SD, CX>;
+    setupCallback?: SetupCallback<UP, QP, SD, CX>;
+    refreshCallback?: RefreshCallback<UP, QP, SD, CX>;
+    teardownCallback?: TeardownCallback<SD, CX>;
 }
 
-interface RouteExtensionCallback<UP, QP, SD> {
-	(configPath: string, config: RouterConfig<UP, QP, SD>): Promise<RouterConfigMap<UP, QP, SD>>;
+interface RouterConfigMap<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX> {
+    `[`name: string`]`: RouterConfig<UP, QP, SD, CX>;
 }
 
-interface SetupCallback<UP, QP, SD> {
-	(routerState: RouterState<UP, QP, SD>, parentStateData: RouterStateData & SD, currentStateData: RouterStateData & SD): RouterStateData & SD;
+interface RouteExtensionCallback<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX> {
+    (configPath: string, config: RouterConfig<UP, QP, SD, CX>, context?: CX): Promise<RouterConfigMap<UP, QP, SD, CX>>;
 }
 
-interface RefreshCallback<UP, QP, SD> {
-	(routerState: RouterState<UP, QP, SD>, parentStateData: RouterStateData & SD, currentStateData: RouterStateData & SD): RouterStateData & SD;
+interface SetupCallback<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX> {
+    (routerState: RouterState<UP, QP, SD>, parentStateData: SD, currentStateData: SD, context?: CX): SD;
 }
 
-interface TeardownCallback<SD> {
-	(stateData: RouterStateData & SD): void;
+interface RefreshCallback<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX> {
+    (routerState: RouterState<UP, QP, SD>, parentStateData: SD, currentStateData: SD, context?: CX): SD;
+}
+
+interface TeardownCallback<SD extends RouterStateData, CX> {
+    (stateData: SD, context?: CX): void;
 }
 
 ```
@@ -184,102 +314,9 @@ longer active.
 ### Start
  
 ```javascript
-start<UP, QP, SD>(history: RouterHistory,
-	routeFoundCallback: RouteFoundCallback<UP, QP, SD>,
-	routeNotFoundCallback?: RouteNotFoundCallback<UP, QP, SD>,
-	urlMissingRouteCallback?: UrlMissingRouteCallback,
-	transitionBegin?: TransitionBeginCallback,
-	transitionCancel?: TransitionCancelCallback,
-	transitionEnd?: TransitionEndCallback)
+start(): void
 ```
-To start the router and begin tracking changes in URLs call this method. The history object passed to this method
-will be asked to start tracking URL changes for this router. The callback functions will be called when the router
-attempts to activate a new state.
-
-```javascript	
-interface RouteFoundCallback<UP, QP, SD> {
-	(routerState: RouterState<UP, QP, SD>): void;
-}
-
-interface RouteNotFoundCallback<UP, QP, SD> {
-	(configPath: string | undefined, fullUrl: string | undefined, matchedConfigs: RouterConfig<UP, QP, SD>[] | undefined, error: any, transitionId: number): void;
-}
-
-interface UrlMissingRouteCallback {
-	(transitionId: number): void;
-}
-
-interface TransitionBeginCallback<UP, QP, SD> {
-	(transitionId: number, configPath?: string, urlParams?: RouterUrlParams & UP,
-	queryParams?: RouterQueryParams & QP, extraStateData?: RouterStateData & SD): void;
-}
-
-interface TransitionCancelCallback<UP, QP, SD> {
-	(transitionId: number, configPath?: string, urlParams?: RouterUrlParams & UP,
-	queryParams?: RouterQueryParams & QP, extraStateData?: RouterStateData & SD): void;
-}
-
-interface TransitionEndCallback<UP, QP, SD> {
-	(transitionId: number, configPath?: string, urlParams?: RouterUrlParams & UP,
-	queryParams?: RouterQueryParams & QP, extraStateData?: RouterStateData & SD): void;
-}
-```
-
-- **routeFoundCallback** This callback will be called when a new state is successfully activated.
-
-- **routeNotFoundCallback** This callback will be called when a new state could not be activated. The `configPath`
-and `fullUrl` arguments refer to the state and / or URL that was requested. The `matchedConfigs` argument
-contain a prefix of states matched when a changed URL couldn't be fully matched. Finally the `error` argument
-is an exception representing the failed state activation.
-
-- **urlMissingRouteCallback** This callback will be called when there is no URL available to respond to. This
-could be the case if a hash based history is used but no hash part is present in the URL.
-
-- **transitionBegin** This callback will be called when the router starts the process of finding a new state to
-activate. If a call to method `navigateTo` triggered this transition the parameters `configPath`, `urlParams`,
-`queryParams` and `extraStateData` from that call will be provided to this callback. Otherwise all parameters except
-`transitionId` will be `undefined`.
-
-- **transitionCancel** This callback will be called when the router cancels the current process to find a new state
-to activate. The reason for cancelling can be either an error or that a new URL change or programmatic activation
-occurred while finding a new state. If a call to method `navigateTo` caused the current transition to be cancelled
-the parameters `configPath`, `urlParams`, `queryParams` and `extraStateData` from that call will be provided to
-this callback. Otherwise all parameters except `transitionId` will be `undefined`.
-
-- **transitionEnd** This callback will be called when the router finished the activating a new state. If a call to method
-`navigateTo` triggered this transition the parameters `configPath`, `urlParams`, `queryParams` and `extraStateData` from
-that call will be provided to this callback. Otherwise all parameters except `transitionId` will be `undefined`.
-
-The most important callback is probably the `routeFoundCallback` and its argument `routerState`.
-
-```javascript
-interface RouterState<UP, QP, SD> {
-	configPath: string;
-	url: string;
-	urlParams: RouterUrlParams & UP;
-	queryParams: RouterQueryParams & QP;
-	historyTrackId?: string;
-	transitionId: number;
-	data: RouterStateData & SD;
-}
-```
-
-- **configPath** This is the dot separated name of the state that is active. If a state from an `errorPath` is
-active for an URL then this property will be the `errorPath`.
-
-- **url** This is the URL from the browser.
-
-- **urlParams** This is a map with the named URL parameters extracted from the active URL.
-
-- **queryParams** This is a map with any query string values from the active URL.
-
-- **historyTrackId** This is an identifier for the current history entry. It can be used to store data that is
-to be restored when a user revisits a history entry.
-
-- **transitionId** This is the id of the transition that resulted in this router state.
-
-- **data** This is the merged data object from the active state and all its parent states. The properties in this
-object can be anything that will tell an application what to display for the active state.
+To start the router and begin tracking changes in URLs call this method.
 
 ### Stop
 
@@ -292,7 +329,7 @@ Call this method to stop the router from reacting to any URL changes or programm
 ### Get Current State
 
 ```javascript
-getCurrentState<UP, QP, SD>(): RouterState<UP, QP, SD>
+getCurrentState(): RouterState<UP, QP, SD>
 ```
 
 Call this method to get the currently active router state.
@@ -300,8 +337,7 @@ Call this method to get the currently active router state.
 ### Get Config Url
 
 ```javascript
-getConfigUrl<UP, QP>(configPath: string, urlParams: RouterUrlParams & UP,
-	queryParams: RouterQueryParams & QP): string | undefined
+getConfigUrl(configPath: string, urlParams?: UP, queryParams?: QP): string | undefined
 ```
 - **configPath** A dot separated path of state names to the state that will be activated.
 
@@ -358,11 +394,11 @@ Check if the router is running by calling this method.
 requestReload(): boolean
 ```
 
-### Navigate To
+### Navigate To / Redirect To
 
 ```javascript
-navigateTo<UP, QP, SD>(configPath: string, urlParams: RouterUrlParams & UP,
-	queryParams: RouterQueryParams & QP, extraStateData: RouterStateData & SD): Promise<RouterState<UP, QP, SD>>
+navigateTo(configPath: string, urlParams?: UP, queryParams?: QP, extraStateData?: SD, context?: CX): Promise<RouterState<UP, QP, SD>>
+redirectTo(configPath: string, urlParams?: UP, queryParams?: QP, extraStateData?: SD, context?: CX): Promise<RouterState<UP, QP, SD>>
 ```
 
 - **configPath** A dot separated path of state names to the state that will be activated.
@@ -378,8 +414,13 @@ Note that the extra state data will only be available in the callbacks that are 
 `navigateTo` call. If the state is reactivated by for example a URL change the extra state data
 will not be available.
 
-To programmatically activate a state call this method with the dot separated name of the state to
-activate. If the URL of the state to activate has any parameters they will be filled in from the
+- **context** A object that will be passed to any callbacks called as a result of this method.
+
+To programmatically activate a state call these methods with the dot separated name of the state to
+activate. The difference between the methods is that `navigateTo` will create a new browser history
+entry while `redirectTo` will replace the current browser history entry.
+
+If the URL of the state to activate has any parameters they will be filled in from the
 `urlParams` argument. The final URL will have a query string added from the `queryParams` argument.
 
 The method will return a promise object that will resolve with the new router state object if the
@@ -393,11 +434,7 @@ callbacks triggered by this method.
 
 For browsers without native Promises a polyfill is needed. The es6-promise is one possible polyfill.
 
-The router should be compatible with latest verions of Chrome, Firefox and Safari. IE8 should work
-with ES5 polyfills like es5-shim and es5-sham. IE9 and later should work with only a Promise polyfill.
-
-To get full history functionallity on IE8 and IE9 the `RouterBrowserHistory` must be configured with
-a history iframe element.
+The router should be compatible with latest verions of Chrome, Firefox, Safari, Edge and IE11.
 
 ## TODO
 

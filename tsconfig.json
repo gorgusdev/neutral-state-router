@@ -1,19 +1,26 @@
 {
 	"compilerOptions": {
-		"target": "es3",
-		"module": "commonjs",
+		"target": "es5",
+		"module": "es6",
+		"moduleResolution": "node",
+		"lib": ["dom", "scripthost", "es5", "es2015.iterable", "es2015.promise"],
+		"importHelpers": true,
 		"noImplicitAny": true,
+		"noImplicitThis": true,
+		"alwaysStrict": true,
 		"strictNullChecks": true,
+		"strictFunctionTypes": true,
+		"strictPropertyInitialization": true,
+		"skipLibCheck": true,
+		"allowSyntheticDefaultImports": true,
+		"esModuleInterop": true,
 		"removeComments": true,
 		"sourceMap": true,
 		"declaration": true,
-		"lib": ["dom", "es5", "scripthost", "es2015.promise"],
-		"outDir": "js/"
+		"outDir": "esm/"
 	},
 	"files": [
 		"./typings/defs.d.ts",
-		"./src/index.ts",
-		"./__tests__/router-test.ts",
-		"./__debug__/debug.ts"
+		"./src/index.ts"
 	]
 }

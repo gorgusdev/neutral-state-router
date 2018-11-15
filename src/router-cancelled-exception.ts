@@ -1,10 +1,12 @@
 // Copyright (c) 2018 Göran Gustafsson. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-export class RouterException extends Error {
+import { RouterException } from './router-exception';
 
-    constructor(message: string) {
-        super(message);
+export class RouterCancelledException extends RouterException {
+
+    constructor() {
+        super('Cancelled');
     }
 
 }

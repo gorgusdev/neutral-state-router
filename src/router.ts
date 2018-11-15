@@ -1,848 +1,406 @@
-// Copyright (c) 2016 Göran Gustafsson. All rights reserved.  
+// Copyright (c) 2018 Göran Gustafsson. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-import * as extend from 'extend';
-import * as pathToRegexp from 'path-to-regexp';
 import * as queryString from 'query-string';
-import urllite = require('urllite');
-
-import {
-	RouterStateData, RouterUrlParams, RouterQueryParams, RouterState, RouterConfig,
-	RouteFoundCallback, RouteNotFoundCallback, UrlMissingRouteCallback,
-	TransitionBeginCallback, TransitionCancelCallback, TransitionEndCallback
-} from './router-types';
-import { RouterHistory } from './router-history';
+import urllite from 'urllite';
+import { RouterUrlParams, RouterQueryParams, RouterStateData } from './router-types';
+import { RouterConfig, RouterState } from './router-types';
+import { RouteFoundCallback, RouteNotFoundCallback, UrlMissingRouteCallback, ContextFromEventCallback } from './router-types';
+import { TransitionBeginCallback, TransitionCancelCallback, TransitionEndCallback } from './router-types';
+import { RouterHistoryManager } from './router-history-manager';
+import { RouterConfigManager, RouterPossibleConfigMatch, RouterPossibleConfigs } from './router-config-manager';
+import { RouterStateManager } from './router-state-manager';
 import { RouterException } from './router-exception';
 import { RouterNotFoundException } from './router-not-found-exception';
+import { RouterCancelledException } from './router-cancelled-exception';
 
-interface RouterConfigInternal extends RouterConfig<{}, {}, {}> {
-	routeExtensionPromise?: Promise<RouterConfig<{}, {}, {}>>;
-	routeExtended?: boolean;
-	pathPrefixRegExp?: RegExp;
-	pathPrefixParams?: PathToRegExpKey[];
-	pathRegExp?: RegExp;
-	pathBuildFunc?: (params: any) => string;
-	pathParams?: PathToRegExpKey[];
-	rootSubUrl?: boolean;
-}
+export class Router<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX> {
 
-interface RouterConfigMatch {
-	configPath: string;
-	pathMatches: RegExpExecArray;
-	configMatches: RouterConfig<{}, {}, {}>[];
-	prefixMatch: boolean;
-}
+    private history: RouterHistoryManager;
+    private config: RouterConfigManager<UP, QP, SD, CX>;
+    private state: RouterStateManager<UP, QP, SD, CX>;
 
-interface RouterAccumulatedPropMap {
-	[name: string]: any[];
-}
+    private routeFoundCallback: RouteFoundCallback<UP, QP, SD, CX> | undefined;
+    private routeNotFoundCallback: RouteNotFoundCallback<UP, QP, SD, CX> | undefined;
+    private urlMissingRouteCallback: UrlMissingRouteCallback<CX> | undefined;
+    private transitionBegin: TransitionBeginCallback<UP, QP, SD, CX> | undefined;
+    private transitionCancel: TransitionCancelCallback<UP, QP, SD, CX> | undefined;
+    private transitionEnd: TransitionEndCallback<UP, QP, SD, CX> | undefined;
+    private contextFromEventCallback: ContextFromEventCallback<CX> | undefined;
 
-type RouterPossibleConfigMatch = RouterConfigMatch | undefined;
-type RouterPossibleConfigs = RouterConfig<{}, {}, {}>[] | undefined;
+    private pendingReload: boolean = false;
 
-export class Router {
+    private transitionId: number;
+    private lastDoneTransitionId: number;
 
-	private history: RouterHistory;
-	private routeFoundCallback: RouteFoundCallback<any, any, any>;
-	private routeNotFoundCallback: RouteNotFoundCallback<any, any, any> | undefined;
-	private urlMissingRouteCallback: UrlMissingRouteCallback | undefined;
-	private transitionBegin: TransitionBeginCallback<any, any, any> | undefined;
-	private transitionCancel: TransitionCancelCallback<any, any, any> | undefined;
-	private transitionEnd: TransitionEndCallback<any, any, any> | undefined;
-	private running: boolean;
+    private running: boolean = false;
 
-	private pendingReload: boolean;
+    constructor({
+            historyManager,
+            configManager,
+            stateManager,
+            routeFoundCallback,
+            routeNotFoundCallback,
+            urlMissingRouteCallback,
+            transitionBegin,
+            transitionCancel,
+            transitionEnd,
+            contextFromEventCallback
+        }: {
+            historyManager: RouterHistoryManager,
+            configManager?: RouterConfigManager<UP, QP, SD, CX>,
+            stateManager?: RouterStateManager<UP, QP, SD, CX>,
+            routeFoundCallback: RouteFoundCallback<UP, QP, SD, CX>,
+            routeNotFoundCallback?: RouteNotFoundCallback<UP, QP, SD, CX>,
+            urlMissingRouteCallback?: UrlMissingRouteCallback<CX>,
+            transitionBegin?: TransitionBeginCallback<UP, QP, SD, CX>,
+            transitionCancel?: TransitionCancelCallback<UP, QP, SD, CX>,
+            transitionEnd?: TransitionEndCallback<UP, QP, SD, CX>,
+            contextFromEventCallback?: ContextFromEventCallback<CX>
+        }
+    ) {
+        this.history = historyManager;
+        this.config = configManager || new RouterConfigManager();
+        this.state = stateManager || new RouterStateManager();
+        this.routeFoundCallback = routeFoundCallback;
+        this.routeNotFoundCallback = routeNotFoundCallback;
+        this.urlMissingRouteCallback = urlMissingRouteCallback;
+        this.transitionBegin = transitionBegin;
+        this.transitionCancel = transitionCancel;
+        this.transitionEnd = transitionEnd;
+        this.contextFromEventCallback = contextFromEventCallback;
+        this.transitionId = 0;
+        this.lastDoneTransitionId = 0;
+    }
 
-	private currentState: RouterState<any, any, any>;
-	private currentStateDatas: RouterStateData[];
-	private currentConfigs: RouterConfig<{}, {}, {}>[];
+    public getCurrentState(): RouterState<UP, QP, SD> {
+        return this.state.getCurrentState();
+    }
 
-	private transitionId: number;
-	private lastDoneTransitionId: number;
+    public setAccumulatedStateDataPropNames(propNames: string[]): void {
+        this.state.setAccumulatedStateDataPropNames(propNames);
+    }
 
-	private accumulatedPropNames: string[] = [];
-	private nonInheritedPropNames: string[] = [];
-	protected rootConfig: RouterConfig<{}, {}, {}>;
+    public setNonInheritedStateDataPropNames(propNames: string[]): void {
+        this.state.setNonInheritedStateDataPropNames(propNames);
+    }
 
-	constructor() {
-		this.rootConfig = {
-			unrouted: true,
-			configs: {}
-		};
-		this.currentState = {
-			configPath: '',
-			url: '',
-			urlParams: {},
-			queryParams: {},
-			historyTrackId: undefined,
-			transitionId: 0,
-			data: {}
-		};
-		this.currentStateDatas = [];
-		this.currentConfigs = [];
-		this.transitionId = 0;
-		this.lastDoneTransitionId = 0;
-		this.buildRouterConfigUrlPrefix(this.rootConfig, '', true, false);
-	}
+    public isRunning(): boolean {
+        return this.running;
+    }
 
-	public getCurrentState<UP, QP, SD>(): RouterState<UP, QP, SD> {
-		return this.currentState;
-	}
+    public requestReload(): void {
+        this.pendingReload = true;
+    }
 
-	public setAccumulatedStateDataPropNames(propNames: string[]) {
-		this.accumulatedPropNames = propNames;
-	}
+    public addConfig(configPath: string, config: RouterConfig<UP, QP, SD, CX>): void {
+        this.config.addConfig(configPath, config, this.isRunning());
+    }
 
-	public setNonInheritedStateDataPropNames(propNames: string[]) {
-		this.nonInheritedPropNames = propNames;
-	}
+    public getConfigUrl(configPath: string, urlParams?: UP, queryParams?: QP): string | undefined {
+        if(!this.isRunning()) {
+            throw new RouterException('Router not running');
+        }
+        const configUrl = this.config.getConfigUrl(configPath, urlParams, queryParams);
+        if(configUrl) {
+            return this.history.getFullUrl(configUrl);
+        } else {
+            return configUrl;
+        }
+    }
 
-	public isRunning(): boolean {
-		return this.running;
-	}
+    public start(): void {
+        if(this.isRunning()) {
+            throw new RouterException('Router already running');
+        }
+        this.history.startHistoryUpdates(this.updateFromHistory);
+        this.config.buildRouterConfigs();
+        this.running = true;
+        this.history.init();
+    }
 
-	public requestReload(): void {
-		this.pendingReload = true;
-	}
+    public stop(): void {
+        if(this.isRunning()) {
+            this.history.stopHistoryUpdates();
+        }
+        this.running = false;
+    }
 
-	public addConfig<UP, QP, SD>(configPath: string, config: RouterConfig<UP, QP, SD>): void {
-		const configPathParts: string[] = configPath.split('.');
-		let parentConfig: RouterConfig<{}, {}, {}> = this.rootConfig;
-		for(let n = 0; n < configPathParts.length; n++) {
-			const configPathPart = configPathParts[n];
-			const configs = parentConfig.configs || {};
-			let currentConfig = configs[configPathPart];
-			if(!currentConfig) {
-				currentConfig = {
-					configs: {}
-				};
-				configs[configPathPart] = currentConfig;
-			}
-			if(n === configPathParts.length - 1) {
-				configs[configPathPart] = extend(true, currentConfig, config);
-				break;
-			}
-			parentConfig = currentConfig;
-		}
-		if(this.isRunning()) {
-			this.buildRouterConfigs();
-		}
-	}
+    public navigateTo(
+        configPath: string,
+        urlParams?: UP,
+        queryParams?: QP,
+        extraStateData?: SD,
+        context?: CX
+    ): Promise<RouterState<UP, QP, SD>> {
+        return this.changeState(configPath, urlParams, queryParams, extraStateData, context, false);
+    }
 
-	public getConfigUrl<UP, QP>(
-		configPath: string,
-		urlParams?: RouterUrlParams & UP,
-		queryParams?: RouterQueryParams & QP
-	): string | undefined {
-		if(!this.isRunning()) {
-			throw new RouterException('Router not running');
-		}
-		const configPathParts: string[] = configPath.split('.');
-		let configs: RouterConfig<{}, {}, {}>[] = [];
-		let currentConfig: RouterConfigInternal | undefined = undefined;
-		let parentConfig = this.rootConfig;
-		for(let n = 0; n < configPathParts.length; n++) {
-			const configPathPart = configPathParts[n];
-			const parentConfigs = parentConfig.configs || {};
-			currentConfig = parentConfigs[configPathPart];
-			if(currentConfig) {
-				configs = configs.concat([currentConfig]);
-				parentConfig = currentConfig;
-			} else {
-				return;
-			}
-		}
-		return this.history.getFullUrl(this.buildConfigStateUrl(configs, urlParams || {}, queryParams || {}));
-	}
+    public redirectTo(
+        configPath: string,
+        urlParams?: UP,
+        queryParams?: QP,
+        extraStateData?: SD,
+        context?: CX
+    ): Promise<RouterState<UP, QP, SD>> {
+        return this.changeState(configPath, urlParams, queryParams, extraStateData, context, true);
+    }
 
-	public start<UP, QP, SD>(
-				history: RouterHistory,
-				routeFoundCallback: RouteFoundCallback<UP, QP, SD>,
-				routeNotFoundCallback?: RouteNotFoundCallback<UP, QP, SD>,
-				urlMissingRouteCallback?: UrlMissingRouteCallback,
-				transitionBegin?: TransitionBeginCallback<UP, QP, SD>,
-				transitionCancel?: TransitionCancelCallback<UP, QP, SD>,
-				transitionEnd?: TransitionEndCallback<UP, QP, SD>): void {
-		if(this.isRunning()) {
-			throw new RouterException('Router already running');
-		}
-		this.history = history;
-		this.routeFoundCallback = routeFoundCallback;
-		this.routeNotFoundCallback = routeNotFoundCallback;
-		this.urlMissingRouteCallback = urlMissingRouteCallback;
-		this.transitionBegin = transitionBegin;
-		this.transitionCancel = transitionCancel;
-		this.transitionEnd = transitionEnd;
-		this.history.startHistoryUpdates(this.updateFromHistory);
-		this.buildRouterConfigs();
-		this.running = true;
-		this.history.init();
-	}
+    private changeState(
+        configPath: string,
+        urlParams: UP | undefined,
+        queryParams: QP | undefined,
+        extraStateData: SD | undefined,
+        context: CX | undefined,
+        replace: boolean
+    ): Promise<RouterState<UP, QP, SD>> {
+        if(!this.isRunning()) {
+            throw new RouterException('Router is not running');
+        }
+        const transitionIdSnapshot = this.beginNewTransition(configPath, urlParams, queryParams, extraStateData);
+        return new Promise<RouterState<UP, QP, SD>>((resolve, reject) => {
+            const configPathParts: string[] = configPath.split('.');
+            this.config.findRouterConfigByName(configPathParts, context).then((configs) => {
+                if(this.isTransitionCancelled(transitionIdSnapshot)) {
+                    reject(new RouterCancelledException());
+                    return;
+                }
+                const newConfig: RouterConfig<UP, QP, SD, CX> = configs[configs.length - 1];
+                if(newConfig.unrouted) {
+                    throw new RouterNotFoundException('Unable to navigate to unrouted path: ' + configPath, configs);
+                }
+                const url = this.config.buildConfigStateUrl(configs, urlParams || {} as UP, queryParams || {} as QP);
+                if(this.pendingReload && newConfig.url && newConfig.reloadable) {
+                    this.history.reloadAtUrl(url);
+                }
+                if(replace) {
+                    this.history.redirectTo(configPath, url);
+                } else {
+                    this.history.navigateTo(configPath, url);
+                }
+                const historyTrackId = this.history.getHistoryTrackId();
+                const currentState = this.state.updateState(
+                    configPath,
+                    url,
+                    urlParams || {} as UP,
+                    queryParams || {} as QP,
+                    historyTrackId,
+                    transitionIdSnapshot,
+                    configs,
+                    extraStateData,
+                    context
+                );
+                if(this.routeFoundCallback) {
+                    this.routeFoundCallback(currentState, context);
+                }
+                this.endCurrentTransition(transitionIdSnapshot, configPath, urlParams, queryParams, extraStateData);
+                resolve(currentState);
+            }).catch((error: Error) => {
+                this.fireRouteNotFoundCallback(error, configPath, undefined, transitionIdSnapshot, context);
+                if(this.transitionCancel) {
+                    this.transitionCancel(transitionIdSnapshot, configPath, urlParams, queryParams, extraStateData);
+                }
+                reject(error);
+            });
+        });
+    }
 
-	public stop(): void {
-		if(this.isRunning()) {
-			this.history.stopHistoryUpdates();
-		}
-		this.running = false;
-	}
+    private beginNewTransition(configPath?: string, urlParams?: UP, queryParams?: QP, extraStateData?: SD, context?: CX): number {
+        if(this.lastDoneTransitionId < this.transitionId) {
+            if(this.transitionCancel) {
+                this.transitionCancel(this.transitionId, configPath, urlParams, queryParams, extraStateData, context);
+            }
+            this.lastDoneTransitionId = this.transitionId;
+        }
+        this.transitionId = this.transitionId + 1;
+        if(this.transitionBegin) {
+            this.transitionBegin(this.transitionId, configPath, urlParams, queryParams, extraStateData, context);
+        }
+        return this.transitionId;
+    }
 
-	public navigateTo<UP, QP, SD>(
-				configPath: string,
-				urlParams?: RouterUrlParams & UP,
-				queryParams?: RouterQueryParams & QP,
-				extraStateData?: RouterStateData & SD): Promise<RouterState<UP, QP, SD>> {
-		if(!this.isRunning()) {
-			throw new RouterException('Router is not running');
-		}
-		const transitionIdSnapshot = this.beginNewTransition(configPath, urlParams, queryParams, extraStateData);
-		return new Promise<RouterState<UP, QP, SD>>((resolve, reject) => {
-			const configPathParts: string[] = configPath.split('.');
-			this.findRouterConfigByName(configPathParts, 0, this.rootConfig, []).then((configs) => {
-				if(this.isTransitionCancelled(transitionIdSnapshot)) {
-					return;
-				}
-				const newConfig: RouterConfigInternal = configs[configs.length - 1];
-				if(newConfig.unrouted) {
-					throw new RouterNotFoundException('Unable to navigate to unrouted path: ' + configPath, configs);
-				}
-				const url = this.buildConfigStateUrl(configs, urlParams || {}, queryParams || {});
-				if(this.pendingReload && newConfig.url && newConfig.reloadable) {
-					this.history.reloadAtUrl(url);
-				} else {
-					this.history.navigateTo(configPath, url);
-					const historyTrackId = this.history.getHistoryTrackId();
-					this.updateState(configPath, url, urlParams || {}, queryParams || {}, historyTrackId, transitionIdSnapshot, configs, extraStateData);
-					if(this.routeFoundCallback) {
-						this.routeFoundCallback(this.currentState);
-					}
-					this.endCurrentTransition(transitionIdSnapshot, configPath, urlParams, queryParams, extraStateData);
-					resolve(this.currentState);
-				}
-			})['catch']((error: Error) => {
-				this.fireRouteNotFoundCallback(error, configPath, undefined, urlParams || {}, queryParams || {}, transitionIdSnapshot);
-				if(this.transitionCancel) {
-					this.transitionCancel(transitionIdSnapshot, configPath, urlParams, queryParams, extraStateData);
-				}
-				reject(error);
-			});
-		});
-	}
+    private isTransitionCancelled(transitionIdSnapshot: number): boolean {
+        return transitionIdSnapshot !== this.transitionId;
+    }
 
-	private beginNewTransition<UP, QP, SD>(
-		configPath?: string,
-		urlParams?: RouterUrlParams & UP,
-		queryParams?: RouterQueryParams & QP,
-		extraStateData?: RouterStateData & SD
-	): number {
-		if(this.lastDoneTransitionId < this.transitionId) {
-			if(this.transitionCancel) {
-				this.transitionCancel(this.transitionId, configPath, urlParams, queryParams, extraStateData);
-			}
-			this.lastDoneTransitionId = this.transitionId;
-		}
-		this.transitionId = this.transitionId + 1;
-		if(this.transitionBegin) {
-			this.transitionBegin(this.transitionId, configPath, urlParams, queryParams, extraStateData);
-		}
-		return this.transitionId;
-	}
+    private endCurrentTransition(transitionIdSnapshot: number, configPath?: string, urlParams?: UP, queryParams?: QP, extraStateData?: SD, context?: CX): void {
+        if(transitionIdSnapshot === this.transitionId) {
+            if(this.transitionEnd) {
+                this.transitionEnd(this.transitionId, configPath, urlParams, queryParams, extraStateData, context);
+            }
+            this.lastDoneTransitionId = this.transitionId;
+        }
+    }
 
-	private isTransitionCancelled(transitionIdSnapshot: number): boolean {
-		return transitionIdSnapshot !== this.transitionId;
-	}
+    private cancelCurrentTransition(transitionIdSnapshot: number, context: CX | undefined): void {
+        if(this.lastDoneTransitionId < transitionIdSnapshot) {
+            if(this.transitionCancel) {
+                this.transitionCancel(transitionIdSnapshot, undefined, undefined, undefined, undefined, context);
+            }
+            this.lastDoneTransitionId = transitionIdSnapshot;
+        }
+    }
 
-	private endCurrentTransition<UP, QP, SD>(
-		transitionIdSnapshot: number,
-		configPath?: string,
-		urlParams?: RouterUrlParams & UP,
-		queryParams?: RouterQueryParams & QP,
-		extraStateData?: RouterStateData & SD
-	): void {
-		if(transitionIdSnapshot === this.transitionId) {
-			if(this.transitionEnd) {
-				this.transitionEnd(this.transitionId, configPath, urlParams, queryParams, extraStateData);
-			}
-			this.lastDoneTransitionId = this.transitionId;
-		}
-	}
+    protected updateFromHistory = (): Promise<RouterState<UP, QP, SD>> => {
+        return new Promise((resolve, reject) => {
+            if(!this.isRunning()) {
+                reject(new RouterException('Router is not running'));
+                return;
+            }
+            const url = this.history.getUrl();
+            const configPath = this.history.getConfigPath();
+            const context = this.contextFromEventCallback ? this.contextFromEventCallback() : undefined;
+            const transitionIdSnapshot = this.beginNewTransition(undefined, undefined, undefined, undefined, context);
+            if(!url) {
+                if(this.urlMissingRouteCallback) {
+                    this.urlMissingRouteCallback(transitionIdSnapshot, context);
+                }
+                reject(new RouterException('Router missing URL'));
+                return;
+            }
+            const urlParts = urllite(url);
+            const queryParams: QP = urlParts.search ? queryString.parse(urlParts.search) : {};
+            const historyTrackId = this.history.getHistoryTrackId();
+            if(configPath) {
+                const configPathParts: string[] = configPath.split('.');
+                this.config.findRouterConfigByName(configPathParts, context).then((configs) => {
+                    if(this.isTransitionCancelled(transitionIdSnapshot)) {
+                        reject(new RouterCancelledException());
+                        return;
+                    }
+                    const state = this.updateStateFromNamedConfig(
+                        configPath,
+                        url,
+                        urlParts.pathname,
+                        queryParams,
+                        historyTrackId,
+                        transitionIdSnapshot,
+                        configs,
+                        context
+                    );
+                    this.endCurrentTransition(transitionIdSnapshot);
+                    resolve(state);
+                }).catch((error: Error) => {
+                    this.fireRouteNotFoundCallback(error, configPath, url, transitionIdSnapshot, context);
+                    this.cancelCurrentTransition(transitionIdSnapshot, context);
+                    reject(error);
+                });
+            } else {
+                let errorPath: string | undefined;
+                const findPromise = this.config.findRoutedConfigByUrl(urlParts.pathname, context);
+                findPromise.then<RouterPossibleConfigs<UP, QP, SD, CX>>((configMatch: RouterPossibleConfigMatch<UP, QP, SD, CX>) => {
+                    if(this.isTransitionCancelled(transitionIdSnapshot)) {
+                        return undefined;
+                    }
+                    if(!configMatch) {
+                        throw new RouterNotFoundException('Unable to find state for URL: ' + url, undefined);
+                    } else if(configMatch.prefixMatch) {
+                        errorPath = this.config.findErrorPathInMatch(configMatch);
+                        if(errorPath) {
+                            return this.config.findRouterConfigByName(errorPath.split('.'), context);
+                        } else {
+                            throw new RouterNotFoundException('Unable to find state for URL: ' + url, configMatch.configMatches);
+                        }
+                    }
+                    const newConfig: RouterConfig<UP, QP, SD, CX> = configMatch.configMatches[configMatch.configMatches.length - 1];
+                    if(this.pendingReload && newConfig.url && newConfig.reloadable) {
+                        this.history.reloadAtUrl(url);
+                    }
+                    const urlParams: UP = this.config.buildUrlParams(newConfig, configMatch.pathMatches);
+                    const currentState = this.state.updateState(
+                        configMatch.configPath,
+                        url,
+                        urlParams,
+                        queryParams,
+                        historyTrackId,
+                        transitionIdSnapshot,
+                        configMatch.configMatches,
+                        undefined,
+                        context
+                    );
+                    if(this.routeFoundCallback) {
+                        this.routeFoundCallback(currentState, context);
+                    }
+                    this.endCurrentTransition(transitionIdSnapshot);
+                    return undefined;
+                }).then((configs: RouterPossibleConfigs<UP, QP, SD, CX>) => {
+                    if(!configs) {
+                        resolve(this.state.getCurrentState());
+                        return;
+                    }
+                    if(this.isTransitionCancelled(transitionIdSnapshot)) {
+                        reject(new RouterCancelledException());
+                        return;
+                    }
+                    const state = this.updateStateFromNamedConfig(
+                        errorPath || '',
+                        url,
+                        urlParts.pathname,
+                        queryParams,
+                        historyTrackId,
+                        transitionIdSnapshot,
+                        configs,
+                        context);
+                    this.endCurrentTransition(transitionIdSnapshot);
+                    resolve(state);
+                }).catch((error: Error) => {
+                    this.fireRouteNotFoundCallback(error, undefined, url, transitionIdSnapshot, context);
+                    this.cancelCurrentTransition(transitionIdSnapshot, context);
+                    reject(error);
+                });
+            }
+        });
+    }
 
-	private cancelCurrentTransition(transitionIdSnapshot: number): void {
-		if(this.lastDoneTransitionId < transitionIdSnapshot) {
-			if(this.transitionCancel) {
-				this.transitionCancel(transitionIdSnapshot);
-			}
-			this.lastDoneTransitionId = transitionIdSnapshot;
-		}
-	}
+    private updateStateFromNamedConfig(
+        configPath: string,
+        url: string,
+        urlPath: string,
+        queryParams: QP,
+        historyTrackId: string | undefined,
+        transitionId: number,
+        configs: RouterConfig<UP, QP, SD, CX>[],
+        context: CX | undefined
+    ): RouterState<UP, QP, SD> {
+        const newConfig: RouterConfig<UP, QP, SD, CX> = configs[configs.length - 1];
+        if(newConfig.unrouted) {
+            throw new RouterNotFoundException('Unable to change to unrouted path: ' + configPath, configs);
+        }
+        if(this.pendingReload && newConfig.url && newConfig.reloadable) {
+            this.history.reloadAtUrl(url);
+        }
+        const urlParams: UP = this.config.findAndBuildUrlParams(urlPath, configs);
+        const currentState = this.state.updateState(configPath, url, urlParams, queryParams, historyTrackId, transitionId, configs, undefined, context);
+        if(this.routeFoundCallback) {
+            this.routeFoundCallback(currentState, context);
+        }
+        return currentState;
+    }
 
-	private buildConfigStateUrl(configs: RouterConfigInternal[], urlParams: RouterUrlParams, queryParams: RouterQueryParams): string {
-		for(let n = configs.length - 1; n >= 0; n--) {
-			const config = configs[n];
-			if(config.pathBuildFunc) {
-				let url = config.pathBuildFunc(urlParams);
-				let params: { [key: string]: (string | number | boolean) | (string | number | boolean)[] } = {};
-				for(let key in queryParams) {
-					if(!queryParams.hasOwnProperty(key)) {
-						continue;
-					}
-					const value = queryParams[key];
-					if(value) {
-						params[key] = value;
-					}
-				}
-				const queryStr = queryString.stringify(params);
-				if(queryStr) {
-					url = url + '?' + queryStr;
-				}
-				return url;
-			}
-		}
-		return '/';
-	}
+    private fireRouteNotFoundCallback(
+        error: any,
+        configPath: string | undefined,
+        url: string | undefined,
+        transitionId: number,
+        context: CX | undefined
+    ): void {
+        if(this.routeNotFoundCallback) {
+            let matchedConfigs: RouterConfig<UP, QP, SD, CX>[] | undefined;
+            if(error instanceof RouterNotFoundException) {
+                matchedConfigs = (<RouterNotFoundException<UP, QP, SD, CX>>error).matched;
+            }
+            this.routeNotFoundCallback(configPath, url, matchedConfigs, error, transitionId, context);
+        } else {
+            this.logError(error);
+        }
+    }
 
-	protected updateFromHistory = (): void => {
-		if(!this.isRunning()) {
-			return;
-		}
-		const url = this.history.getUrl();
-		const configPath = this.history.getConfigPath();
-		const transitionIdSnapshot = this.beginNewTransition();
-		if(!url) {
-			if(this.urlMissingRouteCallback) {
-				this.urlMissingRouteCallback(transitionIdSnapshot);
-			}
-			return;
-		}
-		const urlParts = urllite(url);
-		const queryParams: RouterQueryParams = urlParts.search ? queryString.parse(urlParts.search) : {};
-		const historyTrackId = this.history.getHistoryTrackId();
-		if(configPath) {
-			const configPathParts: string[] = configPath.split('.');
-			this.findRouterConfigByName(configPathParts, 0, this.rootConfig, []).then((configs) => {
-				if(this.isTransitionCancelled(transitionIdSnapshot)) {
-					return;
-				}
-				this.updateStateFromNamedConfig(configPath, url, urlParts.pathname, queryParams, historyTrackId, transitionIdSnapshot, configs);
-				this.endCurrentTransition(transitionIdSnapshot);
-			})['catch']((error: Error) => {
-				this.fireRouteNotFoundCallback(error, configPath, url, {}, queryParams, transitionIdSnapshot);
-				this.cancelCurrentTransition(transitionIdSnapshot);
-			});
-		} else {
-			let errorPath: string | undefined = undefined;
-			this.findRoutedConfigByUrl(this.rootConfig, [], urlParts.pathname, []).then<RouterPossibleConfigs>((configMatch: RouterPossibleConfigMatch) => {
-				if(this.isTransitionCancelled(transitionIdSnapshot)) {
-					return undefined;
-				}
-				if(!configMatch) {
-					throw new RouterNotFoundException('Unable to find state for URL: ' + url, undefined);
-				} else if(configMatch.prefixMatch) {
-					errorPath = this.findErrorPathInMatch(configMatch);
-					if(errorPath) {
-						return this.findRouterConfigByName(errorPath.split('.'), 0, this.rootConfig, []);
-					} else {
-						throw new RouterNotFoundException('Unable to find state for URL: ' + url, configMatch.configMatches);
-					}
-				}
-				const newConfig: RouterConfigInternal = configMatch.configMatches[configMatch.configMatches.length - 1];
-				if(this.pendingReload && newConfig.url && newConfig.reloadable) {
-					this.history.reloadAtUrl(url);
-				} else {
-					const urlParams: RouterUrlParams = this.buildUrlParams(newConfig.pathParams, configMatch.pathMatches);
-					this.updateState(configMatch.configPath, url, urlParams, queryParams, historyTrackId, transitionIdSnapshot, configMatch.configMatches, undefined);
-					if(this.routeFoundCallback) {
-						this.routeFoundCallback(this.currentState);
-					}
-					this.endCurrentTransition(transitionIdSnapshot);
-				}
-				return undefined;
-			}).then((configs: RouterPossibleConfigs) => {
-				if(!configs) {
-					return;
-				}
-				if(this.isTransitionCancelled(transitionIdSnapshot)) {
-					return;
-				}
-				this.updateStateFromNamedConfig(errorPath || '', url, urlParts.pathname, queryParams, historyTrackId, transitionIdSnapshot, configs);
-				this.endCurrentTransition(transitionIdSnapshot);
-			})['catch']((error: Error) => {
-				this.fireRouteNotFoundCallback(error, undefined, url, {}, queryParams, transitionIdSnapshot);
-				this.cancelCurrentTransition(transitionIdSnapshot);
-			});
-		}
-	};
-
-	private updateStateFromNamedConfig(
-				configPath: string,
-				url: string,
-				urlPath: string,
-				queryParams: RouterQueryParams,
-				historyTrackId: string | undefined,
-				transitionId: number,
-				configs: RouterConfig<{}, {}, {}>[]) {
-		const newConfig: RouterConfigInternal = configs[configs.length - 1];
-		if(newConfig.unrouted) {
-			throw new RouterNotFoundException('Unable to change to unrouted path: ' + configPath, configs);
-		}
-		if(this.pendingReload && newConfig.url && newConfig.reloadable) {
-			this.history.reloadAtUrl(url);
-		} else {
-			const urlParams: RouterUrlParams = this.findAndBuildUrlParams(urlPath, configs);
-			this.updateState(configPath, url, urlParams, queryParams, historyTrackId, transitionId, configs, undefined);
-			if(this.routeFoundCallback) {
-				this.routeFoundCallback(this.currentState);
-			}
-		}
-	}
-
-	private findAndBuildUrlParams(url: string, configs: RouterConfigInternal[]): RouterUrlParams {
-		if(!url || !configs) {
-			return {};
-		}
-		for(let n = configs.length - 1; n >= 0; n--) {
-			const config: RouterConfigInternal = configs[n];
-			if(config.pathRegExp) {
-				const pathMatches = config.pathRegExp.exec(url);
-				if(pathMatches) {
-					return this.buildUrlParams(config.pathParams, pathMatches);
-				}
-			}
-			if(config.pathPrefixRegExp) {
-				const pathMatches = config.pathPrefixRegExp.exec(url);
-				if(pathMatches) {
-					return this.buildUrlParams(config.pathPrefixParams, pathMatches);
-				}
-			}
-		}
-		return {};
-	}
-
-	private buildUrlParams(pathParams: PathToRegExpKey[] | undefined, pathMatches: RegExpExecArray): RouterUrlParams {
-		const urlParams: RouterUrlParams = {};
-		if(pathParams) {
-			for(let n = 0; (n < pathParams.length) && (n + 1 < pathMatches.length); n++) {
-				urlParams[pathParams[n].name] = pathMatches[n + 1];
-			}
-		}
-		return urlParams;
-	}
-
-	private findErrorPathInMatch(configMatch: RouterConfigMatch): string | undefined {
-		if(!configMatch || !configMatch.configMatches) {
-			return undefined;
-		}
-		for(let n = configMatch.configMatches.length - 1; n >= 0; n--) {
-			const config = configMatch.configMatches[n];
-			if(config.errorPath) {
-				return config.errorPath;
-			}
-		}
-		return undefined;
-	}
-
-	private findRouterConfigByName(
-				configPathParts: string[],
-				startRouteNameIndex: number,
-				parentConfig: RouterConfigInternal,
-				configs: RouterConfig<{}, {}, {}>[]): Promise<RouterConfig<{}, {}, {}>[]> {
-		return new Promise<RouterConfig<{}, {}, {}>[]>((resolve, reject) => {
-			let currentConfig: RouterConfigInternal | undefined = undefined;
-			for(let n = startRouteNameIndex; n < configPathParts.length; n++) {
-				const configPathPart = configPathParts[n];
-				const parentConfigs = parentConfig.configs || {};
-				currentConfig = parentConfigs[configPathPart];
-				if(currentConfig) {
-					configs = configs.concat([currentConfig]);
-					parentConfig = currentConfig;
-				} else {
-					if(parentConfig.routeExtensionCallback && !parentConfig.routeExtended) {
-						this.extendRouterConfig(configPathParts, parentConfig).then((config) => {
-							resolve(this.findRouterConfigByName(configPathParts, n, config, configs));
-						})['catch']((error: Error) => {
-							reject(error);
-						});
-					} else {
-						reject(new RouterNotFoundException('Unable to find router config for path: ' + configPathParts.join('.'), configs));
-					}
-					return;
-				}
-			}
-			resolve(configs);
-		});
-	}
-
-	private findRoutedConfigByUrl(
-				config: RouterConfigInternal,
-				configPath: string[],
-				url: string,
-				configs: RouterConfig<{}, {}, {}>[]): Promise<RouterPossibleConfigMatch> {
-		return new Promise<RouterPossibleConfigMatch>((resolve, reject) => {
-			const pathPrefixRegExp = config.pathPrefixRegExp;
-			let subConfigs: RouterConfig<{}, {}, {}>[] | undefined = undefined;
-			if(pathPrefixRegExp || config.rootSubUrl) {
-				let pathPrefixParams: RegExpExecArray | null = null;
-				if(pathPrefixRegExp) {
-					pathPrefixParams = pathPrefixRegExp.exec(url);
-				}
-				if(pathPrefixParams || config.rootSubUrl) {
-					if(config.routeExtensionCallback && !config.routeExtended) {
-						this.extendRouterConfig(configPath, config).then((extConfig) => {
-							resolve(this.findRoutedConfigByUrl(extConfig, configPath, url, configs));
-						})['catch']((error: Error) => {
-							reject(error);
-						});
-						return;
-					}
-					subConfigs = configs.concat([config]);
-					let subCalls: PromiseLike<RouterPossibleConfigMatch>[] = [];
-					const configConfigs = config.configs || {};
-					for(let key in configConfigs) {
-						if(!configConfigs.hasOwnProperty(key)) {
-							continue;
-						}
-						const subConfig = configConfigs[key];
-						subCalls.push(this.findRoutedConfigByUrl(subConfig, configPath.concat([key]), url, subConfigs));
-					}
-					if(subCalls.length > 0) {
-						Promise.all<RouterPossibleConfigMatch>(subCalls).then((subMatches: RouterPossibleConfigMatch[]) => {
-							let bestMatch: RouterPossibleConfigMatch = undefined;
-							for(let n = 0; n < subMatches.length; n++) {
-								const subMatch = subMatches[n];
-								if(subMatch) {
-									if(!bestMatch
-											|| (!subMatch.prefixMatch
-												&& bestMatch.prefixMatch)
-											|| (subMatch.configMatches
-												&& (!bestMatch.configMatches
-													|| ((subMatch.prefixMatch === bestMatch.prefixMatch) && (subMatch.configMatches.length > bestMatch.configMatches.length))))
-									) {
-										bestMatch = subMatch;
-									}
-								}
-							}
-							if(bestMatch && bestMatch.prefixMatch) {
-								const match = this.matchRoutedConfigToUrl(config, configPath, url, configs, pathPrefixParams);
-								if(match && !match.prefixMatch) {
-									bestMatch = match;
-								}
-							}
-							if(bestMatch) {
-								resolve(bestMatch);
-							} else {
-								resolve(this.matchRoutedConfigToUrl(config, configPath, url, configs, pathPrefixParams));
-							}
-						});
-						return;
-					}
-					resolve(this.matchRoutedConfigToUrl(config, configPath, url, configs, pathPrefixParams));
-					return;
-				}
-			}
-			resolve(this.matchRoutedConfigToUrl(config, configPath, url, configs, null));
-		});
-	}
-
-	private matchRoutedConfigToUrl(
-				config: RouterConfigInternal,
-				configPath: string[],
-				url: string,
-				configs: RouterConfig<{}, {}, {}>[],
-				pathPrefixParams: RegExpExecArray | null): RouterPossibleConfigMatch {
-		if(config.pathRegExp) {
-			const pathMatches = config.pathRegExp.exec(url);
-			if(pathMatches) {
-				configs = configs.slice(1);
-				configs.push(config);
-				return {
-					configPath: configPath.join('.'),
-					pathMatches: pathMatches,
-					configMatches: configs,
-					prefixMatch: false
-				};
-			}
-		}
-		if(pathPrefixParams) {
-			configs = configs.slice(1);
-			configs.push(config);
-			return {
-				configPath: configPath.join('.'),
-				pathMatches: pathPrefixParams,
-				configMatches: configs,
-				prefixMatch: true
-			};
-		}
-		return undefined;
-	}
-
-	private extendRouterConfig(configPath: string[], config: RouterConfigInternal): Promise<RouterConfig<{}, {}, {}>> {
-		if(!config.routeExtensionPromise) {
-			config.routeExtensionPromise = new Promise((resolve, reject) => {
-				if(!config.routeExtensionCallback) {
-					reject(new Error(''));
-				} else {
-					const routeExtension = config.routeExtensionCallback(configPath.join('.'), config);
-					routeExtension.then((configMap) => {
-						config.routeExtended = true;
-						config.routeExtensionPromise = undefined;
-						if(configMap) {
-							config.configs = extend(true, config.configs || {}, configMap);
-							this.buildRouterConfigs();
-							resolve(config);
-						} else {
-							reject(new RouterException('Router extension in "' + configPath.join('.') + '" did not return a config map'));
-						}
-					})['catch']((error: Error) => {
-						config.routeExtensionPromise = undefined;
-						reject(error);
-					});
-				}
-			});
-		}
-		return config.routeExtensionPromise;
-	}
-
-	private buildRouterConfigs() {
-		this.buildRouterMappingForConfig(this.rootConfig, '');
-	}
-
-	private buildRouterMappingForConfig(config: RouterConfigInternal, urlPrefix: string): boolean[] {
-		const url = this.buildConfigUrl(urlPrefix, config.url);
-		config.configs = config.configs || {};
-		let hasRootConfigUrl = false;
-		let hasRoutedSubConfig = !!config.routeExtensionCallback && !config.routeExtended;
-		for(let key in config.configs) {
-			if(!config.configs.hasOwnProperty(key)) {
-				continue;
-			}
-			const subConfig = config.configs[key];
-			const subFlags = this.buildRouterMappingForConfig(subConfig, url);
-			if(subFlags[0]) {
-				hasRoutedSubConfig = true;
-			}
-			if(subFlags[1]) {
-				hasRootConfigUrl = true;
-			}
-		}
-		const isRoutedConfig = this.buildRoutedConfigUrlMapping(config, url);
-		this.buildRouterConfigUrlPrefix(config, url, hasRoutedSubConfig, hasRootConfigUrl);
-
-		return [isRoutedConfig || hasRoutedSubConfig, hasRootConfigUrl || this.hasRootConfigUrl(config.url)];
-	}
-
-	private buildConfigUrl(urlPrefix: string, configUrl: string | undefined): string {
-		if(!configUrl) {
-			return urlPrefix;
-		}
-		if(this.hasRootConfigUrl(configUrl)) {
-			if((configUrl.length < 2) || (configUrl.charAt(1) !== '/')) {
-				return '/' + configUrl.substring(1);
-			} else {
-				return configUrl.substring(1);
-			}
-		} else if(urlPrefix === '/') {
-			if(configUrl.charAt(0) !== '/') {
-				return '/' + configUrl;
-			} else {
-				return configUrl;
-			}
-		} else {
-			if(configUrl.charAt(0) !== '/') {
-				return urlPrefix + '/' + configUrl;
-			} else {
-				return urlPrefix + configUrl;
-			}
-		}
-	}
-
-	private hasRootConfigUrl(configUrl: string | undefined) {
-		return !!configUrl && (configUrl.charAt(0) === '^');
-	}
-
-	private buildRoutedConfigUrlMapping(config: RouterConfigInternal, url: string): boolean {
-		if(config.url && !config.unrouted) {
-			const pathTokens = pathToRegexp.parse(url);
-			config.pathRegExp = pathToRegexp.tokensToRegExp(pathTokens, {});
-			config.pathBuildFunc = pathToRegexp.tokensToFunction(pathTokens);
-			config.pathParams = [];
-			for(let n = 0; n < pathTokens.length; n++) {
-				if(typeof pathTokens[n] !== 'string') {
-					config.pathParams.push(<PathToRegExpKey>pathTokens[n]);
-				}
-			}
-			return true;
-		} else {
-			delete config.pathParams;
-			delete config.pathRegExp;
-			delete config.pathBuildFunc;
-			return false;
-		}
-	}
-
-	private buildRouterConfigUrlPrefix(config: RouterConfigInternal, url: string, hasRoutedSubConfig: boolean, hasRootConfigUrl: boolean) {
-		if(hasRoutedSubConfig) {
-			let pathParams: PathToRegExpKey[] = [];
-			if(url === '/') {
-				url = url + '*';
-			} else {
-				url = url + '/*';
-			}
-			config.pathPrefixRegExp = pathToRegexp(url, pathParams);
-			config.pathPrefixParams = pathParams;
-		} else {
-			delete config.pathPrefixRegExp;
-			delete config.pathPrefixParams;
-		}
-		config.rootSubUrl = hasRootConfigUrl;
-	}
-
-	private fireRouteNotFoundCallback(
-				error: any,
-				configPath: string | undefined,
-				url: string | undefined,
-				urlParams: RouterUrlParams,
-				queryParams: RouterQueryParams,
-				transitionId: number) {
-		if(this.routeNotFoundCallback) {
-			let matchedConfigs: RouterConfig<{}, {}, {}>[] | undefined = undefined;
-			if(error instanceof RouterNotFoundException) {
-				matchedConfigs = (<RouterNotFoundException<any, any, any>>error).matched;
-			}
-			this.routeNotFoundCallback(configPath, url, matchedConfigs, error, transitionId);
-		} else {
-			this.logError(error);
-		}
-	}
-
-	private updateState(
-				configPath: string,
-				url: string,
-				urlParams: RouterUrlParams,
-				queryParams: RouterQueryParams,
-				historyTrackId: string | undefined,
-				transitionId: number,
-				newConfigs: RouterConfig<{}, {}, {}>[],
-				extraStateData: RouterStateData | undefined) {
-		const state: RouterState<any, any, any> = {
-			configPath: configPath,
-			url: url,
-			urlParams: urlParams,
-			queryParams: queryParams,
-			historyTrackId: historyTrackId,
-			transitionId: transitionId,
-			data: {}
-		};
-		let newStateDatas: RouterStateData[] = [];
-		let accumulatedDataProps: RouterAccumulatedPropMap = this.prepareAccumulatedPropNames();
-		const prefixLength = this.findCommonStatePrefix(newConfigs);
-		let lastStateData: RouterStateData | undefined = undefined;
-		for(let n = 0; n < prefixLength; n++) {
-			const newConfig = newConfigs[n];
-			if(newConfig.refreshCallback) {
-				lastStateData = newConfig.refreshCallback(state, state.data, this.currentStateDatas[n]);
-			} else {
-				lastStateData = this.currentStateDatas[n];
-			}
-			newStateDatas.push(lastStateData);
-			this.accumulateStateDataProps(accumulatedDataProps, newStateDatas[n]);
-			state.data = extend(true, state.data, newStateDatas[n]);
-		}
-		for(let n = prefixLength; n < newConfigs.length; n++) {
-			const newConfig = newConfigs[n];
-			if(newConfig.setupCallback) {
-				lastStateData = newConfig.setupCallback(state, state.data, extend({}, newConfig.data || {}));
-			} else {
-				lastStateData = newConfig.data || {};
-			}
-			newStateDatas.push(lastStateData);
-			this.accumulateStateDataProps(accumulatedDataProps, newStateDatas[n]);
-			state.data = extend(true, state.data, newStateDatas[n]);
-		}
-		this.removeNonInheritedPropNames(state.data, lastStateData);
-		for(let n = this.currentConfigs.length - 1; n >= prefixLength; n--) {
-			const oldConfig = this.currentConfigs[n];
-			if(oldConfig.teardownCallback) {
-				oldConfig.teardownCallback(this.currentStateDatas[n]);
-			}
-		}
-		this.insertAccumulatedStateDataProps(state.data, accumulatedDataProps);
-		if(extraStateData) {
-			state.data = extend(true, state.data, extraStateData);
-		}
-		this.currentState = state;
-		this.currentStateDatas = newStateDatas;
-		this.currentConfigs = newConfigs;
-	}
-
-	private findCommonStatePrefix(newConfigs: RouterConfig<{}, {}, {}>[]): number {
-		const maxLength = Math.max(newConfigs.length, this.currentConfigs.length);
-		let length = 0;
-		while(length < maxLength) {
-			if(newConfigs[length] !== this.currentConfigs[length]) {
-				return length;
-			}
-			length++;
-		}
-		return length;
-	}
-
-	private removeNonInheritedPropNames(data: RouterStateData, lastData: RouterStateData | undefined): void {
-		if(lastData) {
-			for(let n = 0; n < this.nonInheritedPropNames.length; n++) {
-				if(!lastData.hasOwnProperty(this.nonInheritedPropNames[n])) {
-					delete data[this.nonInheritedPropNames[n]];
-				}
-			}
-		}
-	}
-
-	private prepareAccumulatedPropNames(): RouterAccumulatedPropMap {
-		let result: RouterAccumulatedPropMap = {};
-		if(this.accumulatedPropNames) {
-			for(let n = 0; n < this.accumulatedPropNames.length; n++) {
-				result[this.accumulatedPropNames[n]] = [];
-			}
-		}
-		return result;
-	}
-
-	private accumulateStateDataProps(accumulatedDataProps: RouterAccumulatedPropMap, data: RouterStateData) {
-		for(let name in data) {
-			if(!data.hasOwnProperty(name)) {
-				continue;
-			}
-			let values = accumulatedDataProps[name];
-			if((name && (name.charAt(0) === '+')) || (values !== undefined)) {
-				if(!values) {
-					values = [];
-				}
-				const value = data[name];
-				if(Array.isArray(value)) {
-					values = values.concat(value);
-				} else {
-					values.push(value);
-				}
-				accumulatedDataProps[name] = values;
-			}
-		}
-	}
-
-	private insertAccumulatedStateDataProps(data: RouterStateData, accumulatedDataProps: RouterAccumulatedPropMap) {
-		for(let name in accumulatedDataProps) {
-			if(!accumulatedDataProps.hasOwnProperty(name)) {
-				continue;
-			}
-			if(name.charAt(0) === '+') {
-				data[name.substring(1)] = accumulatedDataProps[name];
-			} else {
-				data[name] = accumulatedDataProps[name];
-			}
-		}
-	}
-
-	private logError(error: any) {
-		if(console && console.error) {
-			console.error(error);
-		}
-	}
+    private logError(error: any): void {
+        /* tslint:disable-next-line */
+        if(console && console.error) {
+            /* tslint:disable-next-line */
+            console.error(error);
+        }
+    }
 
 }
