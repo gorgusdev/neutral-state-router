@@ -1,6 +1,6 @@
 {
   "name": "neutral-state-router",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "A framework neutral client-side URL to state router",
   "main": "cjs/index.js",
   "module": "esm/index.js",
