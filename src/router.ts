@@ -35,40 +35,14 @@ export class Router<UP extends RouterUrlParams, QP extends RouterQueryParams, SD
 
     private running: boolean = false;
 
-    constructor({
-            historyManager,
-            configManager,
-            stateManager,
-            routeFoundCallback,
-            routeNotFoundCallback,
-            urlMissingRouteCallback,
-            transitionBegin,
-            transitionCancel,
-            transitionEnd,
-            contextFromEventCallback
-        }: {
-            historyManager: RouterHistoryManager,
-            configManager?: RouterConfigManager<UP, QP, SD, CX>,
-            stateManager?: RouterStateManager<UP, QP, SD, CX>,
-            routeFoundCallback: RouteFoundCallback<UP, QP, SD, CX>,
-            routeNotFoundCallback?: RouteNotFoundCallback<UP, QP, SD, CX>,
-            urlMissingRouteCallback?: UrlMissingRouteCallback<CX>,
-            transitionBegin?: TransitionBeginCallback<UP, QP, SD, CX>,
-            transitionCancel?: TransitionCancelCallback<UP, QP, SD, CX>,
-            transitionEnd?: TransitionEndCallback<UP, QP, SD, CX>,
-            contextFromEventCallback?: ContextFromEventCallback<CX>
-        }
+    constructor(
+        historyManager: RouterHistoryManager,
+        configManager?: RouterConfigManager<UP, QP, SD, CX>,
+        stateManager?: RouterStateManager<UP, QP, SD, CX>,
     ) {
         this.history = historyManager;
         this.config = configManager || new RouterConfigManager();
         this.state = stateManager || new RouterStateManager();
-        this.routeFoundCallback = routeFoundCallback;
-        this.routeNotFoundCallback = routeNotFoundCallback;
-        this.urlMissingRouteCallback = urlMissingRouteCallback;
-        this.transitionBegin = transitionBegin;
-        this.transitionCancel = transitionCancel;
-        this.transitionEnd = transitionEnd;
-        this.contextFromEventCallback = contextFromEventCallback;
         this.transitionId = 0;
         this.lastDoneTransitionId = 0;
     }
@@ -109,10 +83,33 @@ export class Router<UP extends RouterUrlParams, QP extends RouterQueryParams, SD
         }
     }
 
-    public start(): void {
+    public start({
+        routeFoundCallback,
+        routeNotFoundCallback,
+        urlMissingRouteCallback,
+        transitionBegin,
+        transitionCancel,
+        transitionEnd,
+        contextFromEventCallback
+    }: {
+        routeFoundCallback: RouteFoundCallback<UP, QP, SD, CX>,
+        routeNotFoundCallback?: RouteNotFoundCallback<UP, QP, SD, CX>,
+        urlMissingRouteCallback?: UrlMissingRouteCallback<CX>,
+        transitionBegin?: TransitionBeginCallback<UP, QP, SD, CX>,
+        transitionCancel?: TransitionCancelCallback<UP, QP, SD, CX>,
+        transitionEnd?: TransitionEndCallback<UP, QP, SD, CX>,
+        contextFromEventCallback?: ContextFromEventCallback<CX>
+    }): void {
         if(this.isRunning()) {
             throw new RouterException('Router already running');
         }
+        this.routeFoundCallback = routeFoundCallback;
+        this.routeNotFoundCallback = routeNotFoundCallback;
+        this.urlMissingRouteCallback = urlMissingRouteCallback;
+        this.transitionBegin = transitionBegin;
+        this.transitionCancel = transitionCancel;
+        this.transitionEnd = transitionEnd;
+        this.contextFromEventCallback = contextFromEventCallback;
         this.history.startHistoryUpdates(this.updateFromHistory);
         this.config.buildRouterConfigs();
         this.running = true;

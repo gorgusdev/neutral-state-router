@@ -74,7 +74,7 @@ export class RouterConfigManager<UP extends RouterUrlParams, QP extends RouterQu
         return this.internalFindRouterConfigByName(configPathParts, 0, this.root, [], context);
     }
 
-    private internalFindRouterConfigByName(
+    protected internalFindRouterConfigByName(
         configPathParts: string[],
         startRouteNameIndex: number,
         parentConfig: RouterConfigInternal<UP, QP, SD, CX>,
@@ -114,7 +114,7 @@ export class RouterConfigManager<UP extends RouterUrlParams, QP extends RouterQu
         return this.internalFindRoutedConfigByUrl(this.root, [], url, [], context);
     }
 
-    private internalFindRoutedConfigByUrl(
+    protected internalFindRoutedConfigByUrl(
         config: RouterConfigInternal<UP, QP, SD, CX>,
         configPath: string[],
         url: string,
@@ -189,7 +189,7 @@ export class RouterConfigManager<UP extends RouterUrlParams, QP extends RouterQu
         });
     }
 
-    private matchRoutedConfigToUrl(
+    protected matchRoutedConfigToUrl(
         config: RouterConfigInternal<UP, QP, SD, CX>,
         configPath: string[],
         url: string,
@@ -222,7 +222,11 @@ export class RouterConfigManager<UP extends RouterUrlParams, QP extends RouterQu
         return undefined;
     }
 
-    private extendRouterConfig(configPath: string[], config: RouterConfigInternal<UP, QP, SD, CX>, context: CX | undefined): Promise<RouterConfig<UP, QP, SD, CX>> {
+    protected extendRouterConfig(
+        configPath: string[],
+        config: RouterConfigInternal<UP, QP, SD, CX>,
+        context: CX | undefined
+    ): Promise<RouterConfig<UP, QP, SD, CX>> {
         if(!config.routeExtensionPromise) {
             config.routeExtensionPromise = new Promise((resolve, reject) => {
                 if(!config.routeExtensionCallback) {
@@ -253,7 +257,7 @@ export class RouterConfigManager<UP extends RouterUrlParams, QP extends RouterQu
         this.buildRouterMappingForConfig(this.root, '');
     }
 
-    private buildRouterMappingForConfig(config: RouterConfigInternal<UP, QP, SD, CX>, urlPrefix: string): boolean[] {
+    protected buildRouterMappingForConfig(config: RouterConfigInternal<UP, QP, SD, CX>, urlPrefix: string): boolean[] {
         const url = this.buildConfigUrl(urlPrefix, config.url);
         config.configs = config.configs || {};
         let hasRootConfigUrl = false;
@@ -277,7 +281,7 @@ export class RouterConfigManager<UP extends RouterUrlParams, QP extends RouterQu
         return [isRoutedConfig || hasRoutedSubConfig, hasRootConfigUrl || this.hasRootConfigUrl(config.url)];
     }
 
-    private buildConfigUrl(urlPrefix: string, configUrl: string | undefined): string {
+    protected buildConfigUrl(urlPrefix: string, configUrl: string | undefined): string {
         if(!configUrl) {
             return urlPrefix;
         }
@@ -302,11 +306,11 @@ export class RouterConfigManager<UP extends RouterUrlParams, QP extends RouterQu
         }
     }
 
-    private hasRootConfigUrl(configUrl: string | undefined): boolean {
+    protected hasRootConfigUrl(configUrl: string | undefined): boolean {
         return !!configUrl && (configUrl.charAt(0) === '^');
     }
 
-    private buildRoutedConfigUrlMapping(config: RouterConfigInternal<UP, QP, SD, CX>, url: string): boolean {
+    protected buildRoutedConfigUrlMapping(config: RouterConfigInternal<UP, QP, SD, CX>, url: string): boolean {
         if(config.url && !config.unrouted) {
             const pathTokens = pathToRegexp.parse(url);
             config.pathRegExp = pathToRegexp.tokensToRegExp(pathTokens, undefined, {});
@@ -326,7 +330,7 @@ export class RouterConfigManager<UP extends RouterUrlParams, QP extends RouterQu
         }
     }
 
-    private buildRouterConfigUrlPrefix(config: RouterConfigInternal<UP, QP, SD, CX>, url: string, hasRoutedSubConfig: boolean, hasRootConfigUrl: boolean): void {
+    protected buildRouterConfigUrlPrefix(config: RouterConfigInternal<UP, QP, SD, CX>, url: string, hasRoutedSubConfig: boolean, hasRootConfigUrl: boolean): void {
         if(hasRoutedSubConfig) {
             const pathParams: pathToRegexp.Key[] = [];
             if(url === '/') {
@@ -394,7 +398,7 @@ export class RouterConfigManager<UP extends RouterUrlParams, QP extends RouterQu
         return this.internalBuildUrlParams((config as RouterConfigInternal<UP, QP, SD, CX>).pathParams, pathMatches);
     }
 
-    private internalBuildUrlParams(pathParams: pathToRegexp.Key[] | undefined, pathMatches: RegExpExecArray): UP {
+    protected internalBuildUrlParams(pathParams: pathToRegexp.Key[] | undefined, pathMatches: RegExpExecArray): UP {
         const urlParams: UP = {} as UP;
         if(pathParams) {
             for(let n = 0; (n < pathParams.length) && (n + 1 < pathMatches.length); n++) {

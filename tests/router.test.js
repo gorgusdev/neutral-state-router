@@ -14,12 +14,11 @@ describe('router', function() {
             const fakeStateManager = {
                 getCurrentState: sinon.spy()
             };
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
-                routeFoundCallback: sinon.spy()
-            });
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
             router.getCurrentState();
             expect(fakeStateManager.getCurrentState).to.have.property('callCount', 1);
         });
@@ -31,12 +30,11 @@ describe('router', function() {
             const fakeStateManager = {
                 setAccumulatedStateDataPropNames: sinon.spy()
             };
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
-                routeFoundCallback: sinon.spy()
-            });
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
             router.setAccumulatedStateDataPropNames(['a']);
             expect(fakeStateManager.setAccumulatedStateDataPropNames).to.have.property('callCount', 1);
         });
@@ -48,12 +46,11 @@ describe('router', function() {
             const fakeStateManager = {
                 setNonInheritedStateDataPropNames: sinon.spy()
             };
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
-                routeFoundCallback: sinon.spy()
-            });
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
             router.setNonInheritedStateDataPropNames(['a']);
             expect(fakeStateManager.setNonInheritedStateDataPropNames).to.have.property('callCount', 1);
         });
@@ -68,14 +65,15 @@ describe('router', function() {
                 buildRouterConfigs: sinon.spy()
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            expect(router.isRunning()).to.equal(false);
+            router.start({
                 routeFoundCallback: sinon.spy()
             });
-            expect(router.isRunning()).to.equal(false);
-            router.start();
             expect(router.isRunning()).to.equal(true);
         });
     });
@@ -86,12 +84,11 @@ describe('router', function() {
                 addConfig: sinon.spy()
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
-                routeFoundCallback: sinon.spy()
-            });
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
             router.addConfig('a.b', {});
             expect(fakeConfigManager.addConfig).to.have.property('callCount', 1);
         });
@@ -101,12 +98,11 @@ describe('router', function() {
             const fakeHistoryManager = {};
             const fakeConfigManager = {};
             const fakeStateManager = {};
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
-                routeFoundCallback: sinon.spy()
-            });
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
             expect(function() { router.getConfigUrl('a.b'); }).to.throw('Router not running');
         });
 		it('should find the configuration from the config manager and then complete the URL from the history manager', function() {
@@ -120,13 +116,14 @@ describe('router', function() {
                 getConfigUrl: sinon.stub().returns('/b')
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            router.start({
                 routeFoundCallback: sinon.spy()
             });
-            router.start();
             router.getConfigUrl('a.b');
             expect(fakeHistoryManager.getFullUrl, 'getFullUrl').to.have.property('callCount', 1);
             expect(fakeConfigManager.getConfigUrl, 'getConfigUrl').to.have.property('callCount', 1);
@@ -142,13 +139,14 @@ describe('router', function() {
                 buildRouterConfigs: sinon.spy(),
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            router.start({
                 routeFoundCallback: sinon.spy()
             });
-            router.start();
             expect(fakeHistoryManager.startHistoryUpdates).to.have.property('callCount', 1);
             expect(fakeHistoryManager.init).to.have.property('callCount', 1);
             expect(fakeConfigManager.buildRouterConfigs).to.have.property('callCount', 1);
@@ -163,15 +161,18 @@ describe('router', function() {
                 buildRouterConfigs: sinon.spy(),
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            router.start({
                 routeFoundCallback: sinon.spy()
             });
-            router.start();
             expect(function() {
-                router.start();
+                router.start({
+                    routeFoundCallback: sinon.spy()
+                });
             }).to.throw('Router already running');
         });
     });
@@ -186,13 +187,14 @@ describe('router', function() {
                 buildRouterConfigs: sinon.spy()
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            router.start({
                 routeFoundCallback: sinon.spy()
             });
-            router.start();
             router.stop();
             expect(fakeHistoryManager.stopHistoryUpdates).to.have.property('callCount', 1);
             expect(router.isRunning()).to.equal(false);
@@ -207,12 +209,11 @@ describe('router', function() {
                 buildRouterConfigs: sinon.spy()
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
-                routeFoundCallback: sinon.spy()
-            });
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
             router.stop();
             expect(fakeHistoryManager.stopHistoryUpdates).to.have.property('callCount', 0);
             expect(router.isRunning()).to.equal(false);
@@ -246,13 +247,14 @@ describe('router', function() {
                 updateState: sinon.stub().returns(fakeRouterState)
             };
             const routeFoundCallback = sinon.spy();
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            router.start({
                 routeFoundCallback: routeFoundCallback
             });
-            router.start();
             return router.navigateTo('a.b', {}, {}, {}).then(function() {
                 expect(routeFoundCallback).to.have.property('callCount', 1);
                 expect(routeFoundCallback.args[0][0]).to.deep.equal(fakeRouterState);
@@ -285,13 +287,14 @@ describe('router', function() {
                 updateState: sinon.stub().returns(fakeRouterState)
             };
             const routeFoundCallback = sinon.spy();
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            router.start({
                 routeFoundCallback: routeFoundCallback
             });
-            router.start();
             return router.redirectTo('a.b', {}, {}, {}).then(function() {
                 expect(routeFoundCallback).to.have.property('callCount', 1);
                 expect(routeFoundCallback.args[0][0]).to.deep.equal(fakeRouterState);
@@ -339,14 +342,15 @@ describe('router', function() {
             };
             const routeFoundCallback = sinon.spy();
             const routeNotFoundCallback = sinon.spy();
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            router.start({
                 routeFoundCallback: routeFoundCallback,
-                routeNotFoundCallback: routeNotFoundCallback,
+                routeNotFoundCallback: routeNotFoundCallback
             });
-            router.start();
             return expect(router.navigateTo('a.b', {}, {}, {})).to.eventually.rejectedWith('Unable to navigate to unrouted path');
         });
 		it('should cancel transition if navigation fails', function() {
@@ -379,15 +383,16 @@ describe('router', function() {
             const routeFoundCallback = sinon.spy();
             const routeNotFoundCallback = sinon.spy();
             const cancelCallback = sinon.spy();
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            router.start({
                 routeFoundCallback: routeFoundCallback,
                 routeNotFoundCallback: routeNotFoundCallback,
                 transitionCancel: cancelCallback
             });
-            router.start();
             return router.navigateTo('a.b', {}, {}, {}).catch(function() {
                 expect(cancelCallback).to.have.property('callCount', 1);
             });
@@ -412,13 +417,14 @@ describe('router', function() {
                 updateState: sinon.spy()
             };
             const routeFoundCallback = sinon.spy();
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            router.start({
                 routeFoundCallback: routeFoundCallback
             });
-            router.start();
             router.requestReload();
             return router.navigateTo('a.b', {}, {}, {}).then(function() {
                 expect(fakeHistoryManager.reloadAtUrl).to.have.property('callCount', 1);
@@ -453,15 +459,16 @@ describe('router', function() {
             const routeFoundCallback = sinon.spy();
             const beginCallback = sinon.spy();
             const endCallback = sinon.spy();
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            router.start({
                 routeFoundCallback: routeFoundCallback,
                 transitionBegin: beginCallback,
                 transitionEnd: endCallback
             });
-            router.start();
             return router.navigateTo('a.b', {}, {}, {}).then(function() {
                 expect(beginCallback, 'transitionBegin').to.have.property('callCount', 1);
                 expect(endCallback, 'transitionEnd').to.have.property('callCount', 1);
@@ -497,16 +504,17 @@ describe('router', function() {
             const beginCallback = sinon.spy();
             const cancelCallback = sinon.spy();
             const endCallback = sinon.spy();
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            router.start({
                 routeFoundCallback: routeFoundCallback,
                 transitionBegin: beginCallback,
                 transitionCancel: cancelCallback,
                 transitionEnd: endCallback
             });
-            router.start();
             return Promise.all([router.navigateTo('a.b'), router.navigateTo('a.c', {}, {}, {}).then(function() {
                 expect(beginCallback, 'transitionBegin').to.have.property('callCount', 2);
                 expect(cancelCallback, 'transitionCancel').to.have.property('callCount', 1);
@@ -540,14 +548,15 @@ describe('router', function() {
             const fakeStateManager = {};
             const routeFoundCallback = sinon.spy();
             const urlMissingCallback = sinon.spy();
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
+            const router = new routerModule.Router(
+                fakeHistoryManager,
+                fakeConfigManager,
+                fakeStateManager
+            );
+            router.start({
                 routeFoundCallback: routeFoundCallback,
                 urlMissingRouteCallback: urlMissingCallback
             });
-            router.start();
             return router.updateFromHistory().catch(function() {
                 expect(urlMissingCallback).to.have.property('callCount', 1);
             });
@@ -583,13 +592,14 @@ describe('router', function() {
                     updateState: sinon.stub().returns(fakeRouterState)
                 };
                 const routeFoundCallback = sinon.spy();
-                const router = new routerModule.Router({
-                    historyManager: fakeHistoryManager,
-                    configManager: fakeConfigManager,
-                    stateManager: fakeStateManager,
+                const router = new routerModule.Router(
+                    fakeHistoryManager,
+                    fakeConfigManager,
+                    fakeStateManager
+                );
+                router.start({
                     routeFoundCallback: routeFoundCallback
                 });
-                    router.start();
                 return router.updateFromHistory().then(function() {
                     expect(routeFoundCallback).to.have.property('callCount', 1);
                 });
@@ -630,13 +640,14 @@ describe('router', function() {
                     getCurrentState: sinon.stub().returns(fakeRouterState)
                 };
                 const routeFoundCallback = sinon.spy();
-                const router = new routerModule.Router({
-                    historyManager: fakeHistoryManager,
-                    configManager: fakeConfigManager,
-                    stateManager: fakeStateManager,
+                const router = new routerModule.Router(
+                    fakeHistoryManager,
+                    fakeConfigManager,
+                    fakeStateManager
+                );
+                router.start({
                     routeFoundCallback: routeFoundCallback
                 });
-                router.start();
                 return router.updateFromHistory().then(function() {
                     expect(routeFoundCallback).to.have.property('callCount', 1);
                 });

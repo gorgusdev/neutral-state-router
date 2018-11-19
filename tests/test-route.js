@@ -1,27 +1,5 @@
 var historyManager = new Neutral.RouterHistoryManager(location.pathname, true, location, history, sessionStorage);
-var router = new Neutral.Router({ 
-    historyManager: historyManager,
-    routeFoundCallback: function(state) {
-        console.log(state);
-        configPath.value = state.configPath;
-        url.value = state.url;
-        trackId.value = state.historyTrackId;
-        transitionId.value = state.transitionId;
-        routerData.value = JSON.stringify(state.data, undefined, 4);
-        urlParams.value = JSON.stringify(state.urlParams, undefined, 4);
-        queryParams.value = JSON.stringify(state.queryParams, undefined, 4);
-    },
-    routeNotFoundCallback: function() {
-        console.error('Not Found:', arguments);
-        configPath.value = 'Not Found';
-        url.value = '';
-        trackId.value = '';
-        transitionId.value = '';
-        routerData.value = '';
-        urlParams.value = '';
-        queryParams.value = '';
-    }
-});
+var router = new Neutral.Router(historyManager);
 router.addConfig('a', {
     url: '/',
     data: {
@@ -113,7 +91,28 @@ var routerData = document.getElementById('routerData');
 var urlParams = document.getElementById('urlParams');
 var queryParams = document.getElementById('queryParams');
 console.log('Start');
-router.start();
+router.start({
+    routeFoundCallback: function(state) {
+        console.log(state);
+        configPath.value = state.configPath;
+        url.value = state.url;
+        trackId.value = state.historyTrackId;
+        transitionId.value = state.transitionId;
+        routerData.value = JSON.stringify(state.data, undefined, 4);
+        urlParams.value = JSON.stringify(state.urlParams, undefined, 4);
+        queryParams.value = JSON.stringify(state.queryParams, undefined, 4);
+    },
+    routeNotFoundCallback: function() {
+        console.error('Not Found:', arguments);
+        configPath.value = 'Not Found';
+        url.value = '';
+        trackId.value = '';
+        transitionId.value = '';
+        routerData.value = '';
+        urlParams.value = '';
+        queryParams.value = '';
+    }
+});
 var navButton = document.getElementById('navA1');
 navButton.addEventListener('click', function() {
     router.navigateTo('a');

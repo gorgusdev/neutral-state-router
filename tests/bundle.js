@@ -1653,8 +1653,7 @@ var Neutral = (function (exports) {
 	}(RouterException));
 
 	var Router = (function () {
-	    function Router(_a) {
-	        var historyManager = _a.historyManager, configManager = _a.configManager, stateManager = _a.stateManager, routeFoundCallback = _a.routeFoundCallback, routeNotFoundCallback = _a.routeNotFoundCallback, urlMissingRouteCallback = _a.urlMissingRouteCallback, transitionBegin = _a.transitionBegin, transitionCancel = _a.transitionCancel, transitionEnd = _a.transitionEnd, contextFromEventCallback = _a.contextFromEventCallback;
+	    function Router(historyManager, configManager, stateManager) {
 	        var _this = this;
 	        this.pendingReload = false;
 	        this.running = false;
@@ -1747,13 +1746,6 @@ var Neutral = (function (exports) {
 	        this.history = historyManager;
 	        this.config = configManager || new RouterConfigManager();
 	        this.state = stateManager || new RouterStateManager();
-	        this.routeFoundCallback = routeFoundCallback;
-	        this.routeNotFoundCallback = routeNotFoundCallback;
-	        this.urlMissingRouteCallback = urlMissingRouteCallback;
-	        this.transitionBegin = transitionBegin;
-	        this.transitionCancel = transitionCancel;
-	        this.transitionEnd = transitionEnd;
-	        this.contextFromEventCallback = contextFromEventCallback;
 	        this.transitionId = 0;
 	        this.lastDoneTransitionId = 0;
 	    }
@@ -1787,10 +1779,18 @@ var Neutral = (function (exports) {
 	            return configUrl;
 	        }
 	    };
-	    Router.prototype.start = function () {
+	    Router.prototype.start = function (_a) {
+	        var routeFoundCallback = _a.routeFoundCallback, routeNotFoundCallback = _a.routeNotFoundCallback, urlMissingRouteCallback = _a.urlMissingRouteCallback, transitionBegin = _a.transitionBegin, transitionCancel = _a.transitionCancel, transitionEnd = _a.transitionEnd, contextFromEventCallback = _a.contextFromEventCallback;
 	        if (this.isRunning()) {
 	            throw new RouterException('Router already running');
 	        }
+	        this.routeFoundCallback = routeFoundCallback;
+	        this.routeNotFoundCallback = routeNotFoundCallback;
+	        this.urlMissingRouteCallback = urlMissingRouteCallback;
+	        this.transitionBegin = transitionBegin;
+	        this.transitionCancel = transitionCancel;
+	        this.transitionEnd = transitionEnd;
+	        this.contextFromEventCallback = contextFromEventCallback;
 	        this.history.startHistoryUpdates(this.updateFromHistory);
 	        this.config.buildRouterConfigs();
 	        this.running = true;

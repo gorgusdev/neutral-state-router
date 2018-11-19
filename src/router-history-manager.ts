@@ -16,18 +16,18 @@ interface RouterHistoryTrackingRoot {
 
 export class RouterHistoryManager {
 
-    private updateUrlCallback: (() => Promise<any>) | undefined;
-    private urlPathPrefix: string;
-    private useHashMode: boolean;
-    private browserLocation: Location;
-    private browserHistory: History;
-    private browserStorage: Storage;
-    private maxHistoryEntries: number;
-    private disposeHistoryEntryCallback: RouterHistoryDisposeCallback | undefined;
+    protected updateUrlCallback: (() => Promise<any>) | undefined;
+    protected urlPathPrefix: string;
+    protected useHashMode: boolean;
+    protected browserLocation: Location;
+    protected browserHistory: History;
+    protected browserStorage: Storage;
+    protected maxHistoryEntries: number;
+    protected disposeHistoryEntryCallback: RouterHistoryDisposeCallback | undefined;
 
-    private currentHistoryEntry: RouterHistoryEntry | undefined;
-    private historyBackEntries: RouterHistoryEntry[];
-    private historyForwardEntries: RouterHistoryEntry[];
+    protected currentHistoryEntry: RouterHistoryEntry | undefined;
+    protected historyBackEntries: RouterHistoryEntry[];
+    protected historyForwardEntries: RouterHistoryEntry[];
 
     constructor(
         urlPathPrefix: string,
@@ -119,7 +119,7 @@ export class RouterHistoryManager {
         }
     }
 
-    private getUrlFromOtherMode(): string | undefined {
+    protected getUrlFromOtherMode(): string | undefined {
         if(this.useHashMode) {
             let prefix = this.urlPathPrefix;
             if(prefix && (prefix.charAt(prefix.length - 1) === '/')) {
@@ -155,11 +155,11 @@ export class RouterHistoryManager {
         }
     }
 
-    private updateUrlFromHashChange = (): void => {
+    protected updateUrlFromHashChange = (): void => {
         this.updateUrlFromPopState();
     }
 
-    private updateUrlFromPopState = (): void => {
+    protected updateUrlFromPopState = (): void => {
         let entry = this.readPopState();
         if(!entry) {
             let url = this.getUrl();
@@ -183,7 +183,7 @@ export class RouterHistoryManager {
         }
     }
 
-    private updateHistoryEntries(newEntry: RouterHistoryEntry): void {
+    protected updateHistoryEntries(newEntry: RouterHistoryEntry): void {
         this.currentHistoryEntry = newEntry;
         if(!newEntry || !newEntry.historyTrackId) {
             return;
@@ -220,14 +220,14 @@ export class RouterHistoryManager {
         this.historyForwardEntries = [];
     }
 
-    private readPopState(): RouterHistoryEntry | undefined {
+    protected readPopState(): RouterHistoryEntry | undefined {
         if(this.browserHistory.state) {
             return this.browserHistory.state;
         }
         return undefined;
     }
 
-    private writePopState(entry: RouterHistoryEntry): void {
+    protected writePopState(entry: RouterHistoryEntry): void {
         let url = entry.url;
         if(this.useHashMode) {
             url = this.buildFullHashUrl(url);
@@ -237,7 +237,7 @@ export class RouterHistoryManager {
         this.browserHistory.pushState(entry, '', url);
     }
 
-    private rewritePopState(entry: RouterHistoryEntry): RouterHistoryEntry {
+    protected rewritePopState(entry: RouterHistoryEntry): RouterHistoryEntry {
         let url = entry.url;
         if(this.useHashMode) {
             url = this.buildFullHashUrl(url);
@@ -248,7 +248,7 @@ export class RouterHistoryManager {
         return this.browserHistory.state;
     }
 
-    private installEventListener(elem: EventTarget, type: string, listener: (event: any) => void): void {
+    protected installEventListener(elem: EventTarget, type: string, listener: (event: any) => void): void {
         if(elem.addEventListener) {
             elem.addEventListener(type, listener, false);
         } else if((<any>elem).attachEvent) {
@@ -256,7 +256,7 @@ export class RouterHistoryManager {
         }
     }
 
-    private uninstallEventListener(eventTarget: EventTarget, type: string, listener: (event: any) => void): void {
+    protected uninstallEventListener(eventTarget: EventTarget, type: string, listener: (event: any) => void): void {
         if(eventTarget.removeEventListener) {
             eventTarget.removeEventListener(type, listener, false);
         } else if((<any>eventTarget).detachEvent) {
@@ -264,7 +264,7 @@ export class RouterHistoryManager {
         }
     }
 
-    private createHistoryState(configPath: string | undefined, url: string): RouterHistoryEntry {
+    protected createHistoryState(configPath: string | undefined, url: string): RouterHistoryEntry {
         const entry: RouterHistoryEntry = {
             configPath: configPath,
             url: url,
@@ -273,7 +273,7 @@ export class RouterHistoryManager {
         return entry;
     }
 
-    private generateHistoryTrackId(): string | undefined {
+    protected generateHistoryTrackId(): string | undefined {
         if(!this.browserStorage) {
             return undefined;
         }
@@ -294,7 +294,7 @@ export class RouterHistoryManager {
         return 'routerHistoryTrack' + trackId;
     }
 
-    private buildFullHashUrl(url: string): string {
+    protected buildFullHashUrl(url: string): string {
         return (this.urlPathPrefix ? this.urlPathPrefix : '/') + '#' + url;
     }
 

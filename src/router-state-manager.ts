@@ -11,12 +11,12 @@ interface RouterAccumulatedPropMap {
 
 export class RouterStateManager<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX> {
 
-    private currentState: RouterState<UP, QP, SD>;
-    private currentStateDatas: SD[];
-    private currentConfigs: RouterConfig<UP, QP, SD, CX>[];
+    protected currentState: RouterState<UP, QP, SD>;
+    protected currentStateDatas: SD[];
+    protected currentConfigs: RouterConfig<UP, QP, SD, CX>[];
 
-    private accumulatedPropNames: string[] = [];
-    private nonInheritedPropNames: string[] = [];
+    protected accumulatedPropNames: string[] = [];
+    protected nonInheritedPropNames: string[] = [];
 
     constructor() {
         this.currentState = {
@@ -108,7 +108,7 @@ export class RouterStateManager<UP extends RouterUrlParams, QP extends RouterQue
         return state;
     }
 
-    private findCommonStatePrefix(newConfigs: RouterConfig<UP, QP, SD, CX>[]): number {
+    protected findCommonStatePrefix(newConfigs: RouterConfig<UP, QP, SD, CX>[]): number {
         const maxLength = Math.max(newConfigs.length, this.currentConfigs.length);
         let length = 0;
         while(length < maxLength) {
@@ -120,7 +120,7 @@ export class RouterStateManager<UP extends RouterUrlParams, QP extends RouterQue
         return length;
     }
 
-    private removeNonInheritedPropNames(data: SD, lastData: SD | undefined): void {
+    protected removeNonInheritedPropNames(data: SD, lastData: SD | undefined): void {
         if(lastData) {
             for(const nonInheritedPropName of this.nonInheritedPropNames) {
                 if(!lastData.hasOwnProperty(nonInheritedPropName)) {
@@ -130,7 +130,7 @@ export class RouterStateManager<UP extends RouterUrlParams, QP extends RouterQue
         }
     }
 
-    private prepareAccumulatedPropNames(): RouterAccumulatedPropMap {
+    protected prepareAccumulatedPropNames(): RouterAccumulatedPropMap {
         const result: RouterAccumulatedPropMap = {};
         for(const accumulatedPropName of this.accumulatedPropNames) {
             result[accumulatedPropName] = [];
@@ -138,7 +138,7 @@ export class RouterStateManager<UP extends RouterUrlParams, QP extends RouterQue
         return result;
     }
 
-    private accumulateStateDataProps(accumulatedDataProps: RouterAccumulatedPropMap, data: SD): void {
+    protected accumulateStateDataProps(accumulatedDataProps: RouterAccumulatedPropMap, data: SD): void {
         for(const name in data) {
             if(!data.hasOwnProperty(name)) {
                 continue;
@@ -159,7 +159,7 @@ export class RouterStateManager<UP extends RouterUrlParams, QP extends RouterQue
         }
     }
 
-    private insertAccumulatedStateDataProps(data: SD, accumulatedDataProps: RouterAccumulatedPropMap): void {
+    protected insertAccumulatedStateDataProps(data: SD, accumulatedDataProps: RouterAccumulatedPropMap): void {
         for(const name in accumulatedDataProps) {
             if(!accumulatedDataProps.hasOwnProperty(name)) {
                 continue;

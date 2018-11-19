@@ -9,7 +9,7 @@ import { RouterException } from './router-exception';
 export class RouterConfigExtensionManager<UP extends RouterUrlParams, QP extends RouterQueryParams, SD extends RouterStateData, CX>
     extends RouterConfigBaseManager<UP, QP, SD, CX> {
 
-    private baseConfigPathParts: string[];
+    protected baseConfigPathParts: string[];
 
     constructor(baseConfigPath: string = '') {
         super();
