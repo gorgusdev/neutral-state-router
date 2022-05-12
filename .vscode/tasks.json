@@ -8,61 +8,66 @@
 
 // A task runner that calls scripts from the package.json file by using npm
 {
-	"version": "0.1.0",
+	"version": "2.0.0",
 
 	"command": "npm",
-
-	"isShellCommand": true,
-
-	"showOutput": "always",
 
 	"echoCommand": true,
 	
 	"tasks": [
 		{
-			"taskName": "install",
+			"label": "install",
+			"type": "shell",
+			"command": "npm",
 			"args": [
 				"install"
 			],
-			"showOutput": "always",
-			"suppressTaskName": true
+			"problemMatcher": []
 		},
 		{
-			"taskName": "build",
+			"label": "build",
+			"type": "shell",
+			"command": "npm",
 			"args": [
 				"run",
 				"build"
 			],
-			"isBuildCommand": true,
-			"problemMatcher": ["$tsc", "$lessCompile"],
-			"suppressTaskName": true
+			"problemMatcher": [
+				"$tsc",
+				"$lessCompile"
+			],
+			"group": {
+				"_id": "build",
+				"isDefault": false
+			}
 		},
 		{
-			"taskName": "test",
+			"label": "test",
+			"type": "shell",
+			"command": "npm",
 			"args": [
 				"run",
 				"test"
 			],
-			"isTestCommand": true,
-			"suppressTaskName": true
+			"problemMatcher": [],
+			"group": {
+				"_id": "test",
+				"isDefault": false
+			}
 		},
 		{
-			"taskName": "watch",
+			"label": "watch",
+			"type": "shell",
+			"command": "npm",
 			"args": [
 				"run",
 				"watch"
 			],
-			"isWatching": true,
-			"problemMatcher": ["$lessCompile", "$tsc-watch"],
-			/*
-			"problemMatcher": ["$lessCompile", {
-				"base": "$tsc",
-				"watchedTaskBeginsRegExp": "^\\s*message TS6032: File change detected. Starting incremental compilation…",
-				"watchedTaskEndsRegExp": "^\\s*message TS6042: Compilation complete. Watching for file changes."
-			}],
-			*/
-			
-			"suppressTaskName": true
+			"isBackground": true,
+			"problemMatcher": [
+				"$lessCompile",
+				"$tsc-watch"
+			]
 		}
 	]
 }

@@ -2,7 +2,7 @@
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 import extend from 'extend';
-import pathToRegexp from 'path-to-regexp';
+import * as pathToRegexp from 'path-to-regexp';
 import * as queryString from 'query-string';
 import { RouterUrlParams, RouterQueryParams, RouterStateData } from './router-types';
 import { RouterConfig } from './router-types';
@@ -313,7 +313,7 @@ export class RouterConfigManager<UP extends RouterUrlParams, QP extends RouterQu
     protected buildRoutedConfigUrlMapping(config: RouterConfigInternal<UP, QP, SD, CX>, url: string): boolean {
         if(config.url && !config.unrouted) {
             const pathTokens = pathToRegexp.parse(url);
-            config.pathRegExp = pathToRegexp.tokensToRegExp(pathTokens, undefined, {});
+            config.pathRegExp = pathToRegexp.tokensToRegexp(pathTokens, undefined, {});
             config.pathBuildFunc = pathToRegexp.tokensToFunction(pathTokens);
             config.pathParams = [];
             for(const pathToken of pathTokens) {
@@ -338,7 +338,7 @@ export class RouterConfigManager<UP extends RouterUrlParams, QP extends RouterQu
             } else {
                 url = url + '/(.*)';
             }
-            config.pathPrefixRegExp = pathToRegexp(url, pathParams);
+            config.pathPrefixRegExp = pathToRegexp.pathToRegexp(url, pathParams);
             config.pathPrefixParams = pathParams;
         } else {
             delete config.pathPrefixRegExp;
@@ -399,13 +399,14 @@ export class RouterConfigManager<UP extends RouterUrlParams, QP extends RouterQu
     }
 
     protected internalBuildUrlParams(pathParams: pathToRegexp.Key[] | undefined, pathMatches: RegExpExecArray): UP {
-        const urlParams: UP = {} as UP;
+        const urlParams: RouterUrlParams = {};
         if(pathParams) {
             for(let n = 0; (n < pathParams.length) && (n + 1 < pathMatches.length); n++) {
-                urlParams[pathParams[n].name] = pathMatches[n + 1];
+                const paramName = '' + pathParams[n].name;
+                urlParams[paramName] = pathMatches[n + 1];
             }
         }
-        return urlParams;
+        return urlParams as UP;
     }
 
     public findErrorPathInMatch(configMatch: RouterConfigMatch<UP, QP, SD, CX>): string | undefined {

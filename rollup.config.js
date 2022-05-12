@@ -12,8 +12,7 @@ export default {
     },
     plugins: [
         resolve({
-            module: true,
-            main: true,
+            mainFields: ['module', 'main'],
             browser: true
         }),
         commonjs()

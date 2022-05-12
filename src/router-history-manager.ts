@@ -75,7 +75,7 @@ export class RouterHistoryManager {
     public reloadAtUrl(url: string): void {
         if(this.useHashMode) {
             this.browserLocation.hash = this.buildFullHashUrl(url);
-            this.browserLocation.reload(true);
+            this.browserLocation.reload();
         } else {
             this.browserLocation.href = this.urlPathPrefix + url;
         }

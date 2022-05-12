@@ -159,7 +159,7 @@ export class RouterStateManager<UP extends RouterUrlParams, QP extends RouterQue
         }
     }
 
-    protected insertAccumulatedStateDataProps(data: SD, accumulatedDataProps: RouterAccumulatedPropMap): void {
+    protected insertAccumulatedStateDataProps(data: RouterStateData, accumulatedDataProps: RouterAccumulatedPropMap): void {
         for(const name in accumulatedDataProps) {
             if(!accumulatedDataProps.hasOwnProperty(name)) {
                 continue;

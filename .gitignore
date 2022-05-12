@@ -2,6 +2,7 @@ node_modules/*
 js/*
 cjs/*
 esm/*
+tests/bundle.js
 .nyc_output
 coverage
 html-report/*

@@ -120,7 +120,7 @@ navButton.addEventListener('click', function() {
 });
 navButton = document.getElementById('navB1');
 navButton.addEventListener('click', function() {
-    router.navigateTo('a.b1');
+    router.navigateTo('a.b1').catch(function() {});
     return false;
 });
 navButton = document.getElementById('navB1C1');

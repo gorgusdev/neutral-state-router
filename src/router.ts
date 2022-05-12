@@ -256,7 +256,7 @@ export class Router<UP extends RouterUrlParams, QP extends RouterQueryParams, SD
                 return;
             }
             const urlParts = urllite(url);
-            const queryParams: QP = urlParts.search ? queryString.parse(urlParts.search) : {};
+            const queryParams: QP = urlParts.search ? queryString.parse(urlParts.search) : {} as any;
             const historyTrackId = this.history.getHistoryTrackId();
             if(configPath) {
                 const configPathParts: string[] = configPath.split('.');
