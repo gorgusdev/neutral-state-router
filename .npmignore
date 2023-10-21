@@ -9,4 +9,5 @@ yarn.lock
 cypress
 tests
 esm/*.test.js
-cjs/*.test.js
+esm/*.test.d.ts
+esm/*.test.js.map
