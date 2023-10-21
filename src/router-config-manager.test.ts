@@ -1,58 +1,58 @@
-const chai = require('chai');
-const chaiAsPromised = require('chai-as-promised');
-const expect = chai.expect;
-const manager = require('../cjs/router-config-manager');
-const RouterNotFoundException = require('../cjs/router-not-found-exception').RouterNotFoundException;
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
+import { RouterConfigManager } from './router-config-manager';
+import { RouterNotFoundException } from './router-not-found-exception';
 
 chai.use(chaiAsPromised);
 
 describe('router-config-manager', function() {
     describe('addConfig', function() {
         it('should add a root config', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/'
-            });
-            expect(configManager.root.configs).to.deep.equal({ 'a': { url: '/', configs: {} }});
+            }, true);
+            expect((configManager as any).root.configs.a.url).to.equal('/');
         });
 
         it('should add a sub config', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a'
-            });
+            }, true);
             configManager.addConfig('a.b', {
                 url: '/b'
-            });
-            expect(configManager.root.configs).to.deep.equal({ 'a': { url: '/a', configs: { 'b': { url: '/b', configs: {}}}}});
+            }, true);
+            expect((configManager as any).root.configs.a.url).to.equal('/a');
+            expect((configManager as any).root.configs.a.configs.b.url).to.equal('/b');
         });
 
         it('should rebuild internal config data if router is running', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a'
             }, true);
-            expect(configManager.root.configs.a.pathRegExp).to.not.be.undefined;
+            expect((configManager as any).root.configs.a.pathRegExp).to.not.be.undefined;
         });
 
         it('should not rebuild internal config data if router is not running', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a'
             }, false);
-            expect(configManager.root.configs.a.pathRegExp).to.be.undefined;
+            expect((configManager as any).root.configs.a.pathRegExp).to.be.undefined;
         });
 
         it('should add an initial slash to the URL regexp', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: 'a'
             }, true);
-            expect(configManager.root.configs.a.pathRegExp.test('/a')).to.equal(true);
+            expect((configManager as any).root.configs.a.pathRegExp.test('/a')).to.equal(true);
         })
 
         it('should ensure an initial slash in the URL regexp when root URL is only a slash', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/',
                 configs: {
@@ -64,12 +64,12 @@ describe('router-config-manager', function() {
                     }
                 }
             }, true);
-            expect(configManager.root.configs.a.configs.b.pathRegExp.test('/b')).to.equal(true);
-            expect(configManager.root.configs.a.configs.c.pathRegExp.test('/c')).to.equal(true);
+            expect((configManager as any).root.configs.a.configs.b.pathRegExp.test('/b')).to.equal(true);
+            expect((configManager as any).root.configs.a.configs.c.pathRegExp.test('/c')).to.equal(true);
         })
 
         it('should ensure an initial slash in the URL regexp if using a rooted URL', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a',
                 configs: {
@@ -81,14 +81,14 @@ describe('router-config-manager', function() {
                     }
                 }
             }, true);
-            expect(configManager.root.configs.a.configs.b.pathRegExp.test('/b')).to.equal(true);
-            expect(configManager.root.configs.a.configs.c.pathRegExp.test('/c')).to.equal(true);
+            expect((configManager as any).root.configs.a.configs.b.pathRegExp.test('/b')).to.equal(true);
+            expect((configManager as any).root.configs.a.configs.c.pathRegExp.test('/c')).to.equal(true);
         })
     });
 
     describe('getConfigUrl', function() {
         it('should return the url for the last config', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a',
                 configs: {
@@ -100,7 +100,7 @@ describe('router-config-manager', function() {
             expect(configManager.getConfigUrl('a.b')).to.equal('/a/b');
         });
         it('should return undefined for missing config', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a',
                 configs: {
@@ -126,9 +126,9 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', config, true);
-            return expect(configManager.findRouterConfigByName(['a', 'c']).then(function(configs) {
+            return expect(configManager.findRouterConfigByName(['a', 'c'], undefined).then(function(configs) {
                 return configs.map(function (config) {
                     return config.url;
                 });
@@ -147,9 +147,9 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', config, true);
-            return expect(configManager.findRouterConfigByName(['a', 'd']).then(function(configs) {
+            return expect(configManager.findRouterConfigByName(['a', 'd'], undefined).then(function(configs) {
                 return configs.map(function (config) {
                     return config.url;
                 });
@@ -159,7 +159,7 @@ describe('router-config-manager', function() {
         it('should extend the config with the extend config callback', function() {
             var config = {
                 url: '/a',
-                routeExtensionCallback: function(path, conf) {
+                routeExtensionCallback: function() {
                     return Promise.resolve({
                         d: {
                             url: '/d'
@@ -175,9 +175,9 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', config, true);
-            return expect(configManager.findRouterConfigByName(['a', 'd']).then(function(configs) {
+            return expect(configManager.findRouterConfigByName(['a', 'd'], undefined).then(function(configs) {
                 return configs.map(function (config) {
                     return config.url;
                 });
@@ -187,7 +187,7 @@ describe('router-config-manager', function() {
         it('should reject if extend callback returns a promise that rejects', function() {
             var config = {
                 url: '/a',
-                routeExtensionCallback: function(path, conf) {
+                routeExtensionCallback: function() {
                     return Promise.reject(new Error('test'));
                 },
                 configs: {
@@ -199,9 +199,9 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', config, true);
-            return expect(configManager.findRouterConfigByName(['a', 'd']).then(function(configs) {
+            return expect(configManager.findRouterConfigByName(['a', 'd'], undefined).then(function(configs) {
                 return configs.map(function (config) {
                     return config.url;
                 });
@@ -210,7 +210,7 @@ describe('router-config-manager', function() {
         it('should reject if extend callback throws', function() {
             var config = {
                 url: '/a',
-                routeExtensionCallback: function(path, conf) {
+                routeExtensionCallback: function() {
                     throw new Error('thrown');
                 },
                 configs: {
@@ -222,9 +222,9 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', config, true);
-            return expect(configManager.findRouterConfigByName(['a', 'd']).then(function(configs) {
+            return expect(configManager.findRouterConfigByName(['a', 'd'], undefined).then(function(configs) {
                 return configs.map(function (config) {
                     return config.url;
                 });
@@ -233,7 +233,7 @@ describe('router-config-manager', function() {
         it('should reject if extend callback returns undefined', function() {
             var config = {
                 url: '/a',
-                routeExtensionCallback: function(path, conf) {
+                routeExtensionCallback: function() {
                     return Promise.resolve(undefined);
                 },
                 configs: {
@@ -245,9 +245,9 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
-            configManager.addConfig('a', config, true);
-            return expect(configManager.findRouterConfigByName(['a', 'd']).then(function(configs) {
+            var configManager = new RouterConfigManager();
+            configManager.addConfig('a', config as any, true);
+            return expect(configManager.findRouterConfigByName(['a', 'd'], undefined).then(function(configs) {
                 return configs.map(function (config) {
                     return config.url;
                 });
@@ -267,13 +267,13 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', config, true);
-            return expect(configManager.findRoutedConfigByUrl('/a/c').then(function(configMatch) {
+            return expect(configManager.findRoutedConfigByUrl('/a/c', undefined).then(function(configMatch) {
                 return configMatch && configMatch.configMatches && configMatch.configMatches.map(function (config) {
                     return config.url;
-                }).concat([configMatch.prefixMatch]);
-            })).to.eventually.deep.equal(['/a', '/c', false]);
+                }).concat([`${configMatch.prefixMatch}`]);
+            })).to.eventually.deep.equal(['/a', '/c', 'false']);
         });
 
         it('should resolve a promise to an array of configs matching an rooted URL', function() {
@@ -288,13 +288,13 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', config, true);
-            return expect(configManager.findRoutedConfigByUrl('/c').then(function(configMatch) {
+            return expect(configManager.findRoutedConfigByUrl('/c', undefined).then(function(configMatch) {
                 return configMatch && configMatch.configMatches && configMatch.configMatches.map(function (config) {
                     return config.url;
-                }).concat([configMatch.prefixMatch]);
-            })).to.eventually.deep.equal(['/a', '^/c', false]);
+                }).concat([`${configMatch.prefixMatch}`]);
+            })).to.eventually.deep.equal(['/a', '^/c', 'false']);
         });
 
         it('should resolve with undefined when an URL doesn\'t match at all', function() {
@@ -309,9 +309,9 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', config, true);
-            return expect(configManager.findRoutedConfigByUrl('b')).to.eventually.equal(undefined);
+            return expect(configManager.findRoutedConfigByUrl('b', undefined)).to.eventually.equal(undefined);
         });
 
         it('should resolve with a prefix match when only a prefix part of an URL match', function() {
@@ -326,19 +326,19 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', config, true);
-            return expect(configManager.findRoutedConfigByUrl('/a/d').then(function(configMatch) {
+            return expect(configManager.findRoutedConfigByUrl('/a/d', undefined).then(function(configMatch) {
                 return configMatch && configMatch.configMatches && configMatch.configMatches.map(function (config) {
                     return config.url;
-                }).concat([configMatch.prefixMatch]);
-            })).to.eventually.deep.equal(['/a', true]);
+                }).concat([`${configMatch.prefixMatch}`]);
+            })).to.eventually.deep.equal(['/a', 'true']);
         });
 
         it('should extend the config with the extend config callback', function() {
             var config = {
                 url: '/a',
-                routeExtensionCallback: function(path, conf) {
+                routeExtensionCallback: function() {
                     return Promise.resolve({
                         d: {
                             url: '/d'
@@ -354,9 +354,9 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', config, true);
-            return expect(configManager.findRoutedConfigByUrl('/a/d').then(function(configMatch) {
+            return expect(configManager.findRoutedConfigByUrl('/a/d', undefined).then(function(configMatch) {
                 return configMatch && configMatch.configMatches && configMatch.configMatches.map(function (config) {
                     return config.url;
                 });
@@ -366,7 +366,7 @@ describe('router-config-manager', function() {
         it('should reject if extend callback returns a promise that rejects', function() {
             var config = {
                 url: '/a',
-                routeExtensionCallback: function(path, conf) {
+                routeExtensionCallback: function() {
                     return Promise.reject(new Error('test'));
                 },
                 configs: {
@@ -378,15 +378,15 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', config, true);
-            return expect(configManager.findRoutedConfigByUrl('/a/d')).to.eventually.be.rejectedWith('test');
+            return expect(configManager.findRoutedConfigByUrl('/a/d', undefined)).to.eventually.be.rejectedWith('test');
         });
 
         it('should reject if extend callback throws', function() {
             var config = {
                 url: '/a',
-                routeExtensionCallback: function(path, conf) {
+                routeExtensionCallback: function() {
                     throw new Error('thrown');
                 },
                 configs: {
@@ -398,15 +398,15 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', config, true);
-            return expect(configManager.findRoutedConfigByUrl('/a/d')).to.eventually.be.rejectedWith('thrown');
+            return expect(configManager.findRoutedConfigByUrl('/a/d', undefined)).to.eventually.be.rejectedWith('thrown');
         });
 
         it('should reject if extend callback returns undefined', function() {
             var config = {
                 url: '/a',
-                routeExtensionCallback: function(path, conf) {
+                routeExtensionCallback: function() {
                     return Promise.resolve(undefined);
                 },
                 configs: {
@@ -418,31 +418,31 @@ describe('router-config-manager', function() {
                     }
                 }
             };
-            var configManager = new manager.RouterConfigManager();
-            configManager.addConfig('a', config, true);
-            return expect(configManager.findRoutedConfigByUrl('/a/d')).to.eventually.be.rejectedWith('did not return a config');
+            var configManager = new RouterConfigManager();
+            configManager.addConfig('a', config as any, true);
+            return expect(configManager.findRoutedConfigByUrl('/a/d', undefined)).to.eventually.be.rejectedWith('did not return a config');
         });
     });
 
     describe('buildConfigStateUrl', function() {
         it('should insert path parameters in URL for configs', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a/:param'
             }, true);
-            expect(configManager.buildConfigStateUrl([configManager.root.configs.a], { param: 'Test' }, {})).to.equal('/a/Test');
+            expect(configManager.buildConfigStateUrl([(configManager as any).root.configs.a], { param: 'Test' }, {})).to.equal('/a/Test');
         });
 
         it('should add query parameters on URL for configs', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a/:param'
             }, true);
-            expect(configManager.buildConfigStateUrl([configManager.root.configs.a], { param: 'Test' }, { test: '123' })).to.equal('/a/Test?test=123');
+            expect(configManager.buildConfigStateUrl([(configManager as any).root.configs.a], { param: 'Test' }, { test: '123' })).to.equal('/a/Test?test=123');
         });
 
         it('should return a single slash if no configs are provided', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a/:param'
             }, true);
@@ -452,15 +452,15 @@ describe('router-config-manager', function() {
 
     describe('findAndBuildUrlParams', function() {
         it('should extract path params from URL', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a/:param'
             }, true);
-            expect(configManager.findAndBuildUrlParams('/a/Test', [configManager.root.configs.a])).to.deep.equal({ param: 'Test' });
+            expect(configManager.findAndBuildUrlParams('/a/Test', [(configManager as any).root.configs.a])).to.deep.equal({ param: 'Test' });
         });
 
         it('should extract path params from prefix URL', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a/:param',
                 configs: {
@@ -469,13 +469,13 @@ describe('router-config-manager', function() {
                     }
                 }
             }, true);
-            expect(configManager.findAndBuildUrlParams('/a/Test/b', [configManager.root.configs.a])).to.deep.equal({ '0': 'b', param: 'Test' });
+            expect(configManager.findAndBuildUrlParams('/a/Test/b', [(configManager as any).root.configs.a])).to.deep.equal({ '0': 'b', param: 'Test' });
         });
     });
 
     describe('findErrorPathInMatch', function() {
         it('should find the error path in an array of configs', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a',
                 errorPath: 'a.error',
@@ -488,11 +488,11 @@ describe('router-config-manager', function() {
                     }
                 }
             }, true);
-            expect(configManager.findErrorPathInMatch({ configMatches: [configManager.root.configs.a, configManager.root.configs.a.configs.b] })).to.equal('a.error');
+            expect(configManager.findErrorPathInMatch({ configMatches: [(configManager as any).root.configs.a, (configManager as any).root.configs.a.configs.b] } as any)).to.equal('a.error');
         });
 
         it('should find the last error path in an array of configs', function() {
-            var configManager = new manager.RouterConfigManager();
+            var configManager = new RouterConfigManager();
             configManager.addConfig('a', {
                 url: '/a',
                 errorPath: 'a.error',
@@ -506,7 +506,7 @@ describe('router-config-manager', function() {
                     }
                 }
             }, true);
-            expect(configManager.findErrorPathInMatch({ configMatches: [configManager.root.configs.a, configManager.root.configs.a.configs.b] })).to.equal('b.error');
+            expect(configManager.findErrorPathInMatch({ configMatches: [(configManager as any).root.configs.a, (configManager as any).root.configs.a.configs.b] } as any)).to.equal('b.error');
         });
     });
 });

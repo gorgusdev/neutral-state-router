@@ -3,7 +3,7 @@
 
 import extend from 'extend';
 import * as pathToRegexp from 'path-to-regexp';
-import * as queryString from 'query-string';
+import queryString from 'query-string';
 import { RouterUrlParams, RouterQueryParams, RouterStateData } from './router-types';
 import { RouterConfig } from './router-types';
 import { RouterException } from './router-exception';

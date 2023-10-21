@@ -1,8 +1,11 @@
-const chai = require('chai');
-const chaiAsPromised = require('chai-as-promised');
-const expect = chai.expect;
-const sinon = require('sinon');
-const routerModule = require('../cjs/router');
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
+import sinon from 'sinon';
+import { Router } from './router';
+import { RouterConfigManager } from './router-config-manager';
+import { RouterHistoryManager } from './router-history-manager';
+import { RouterStateManager } from './router-state-manager';
+import { RouterQueryParams, RouterStateData, RouterUrlParams } from './router-types';
 
 chai.use(chaiAsPromised);
 
@@ -14,10 +17,10 @@ describe('router', function() {
             const fakeStateManager = {
                 getCurrentState: sinon.spy()
             };
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.getCurrentState();
             expect(fakeStateManager.getCurrentState).to.have.property('callCount', 1);
@@ -30,10 +33,10 @@ describe('router', function() {
             const fakeStateManager = {
                 setAccumulatedStateDataPropNames: sinon.spy()
             };
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.setAccumulatedStateDataPropNames(['a']);
             expect(fakeStateManager.setAccumulatedStateDataPropNames).to.have.property('callCount', 1);
@@ -46,10 +49,10 @@ describe('router', function() {
             const fakeStateManager = {
                 setNonInheritedStateDataPropNames: sinon.spy()
             };
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.setNonInheritedStateDataPropNames(['a']);
             expect(fakeStateManager.setNonInheritedStateDataPropNames).to.have.property('callCount', 1);
@@ -65,10 +68,10 @@ describe('router', function() {
                 buildRouterConfigs: sinon.spy()
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             expect(router.isRunning()).to.equal(false);
             router.start({
@@ -84,10 +87,10 @@ describe('router', function() {
                 addConfig: sinon.spy()
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.addConfig('a.b', {});
             expect(fakeConfigManager.addConfig).to.have.property('callCount', 1);
@@ -98,10 +101,10 @@ describe('router', function() {
             const fakeHistoryManager = {};
             const fakeConfigManager = {};
             const fakeStateManager = {};
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             expect(function() { router.getConfigUrl('a.b'); }).to.throw('Router not running');
         });
@@ -116,10 +119,10 @@ describe('router', function() {
                 getConfigUrl: sinon.stub().returns('/b')
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.start({
                 routeFoundCallback: sinon.spy()
@@ -139,10 +142,10 @@ describe('router', function() {
                 buildRouterConfigs: sinon.spy(),
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.start({
                 routeFoundCallback: sinon.spy()
@@ -161,10 +164,10 @@ describe('router', function() {
                 buildRouterConfigs: sinon.spy(),
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.start({
                 routeFoundCallback: sinon.spy()
@@ -187,10 +190,10 @@ describe('router', function() {
                 buildRouterConfigs: sinon.spy()
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.start({
                 routeFoundCallback: sinon.spy()
@@ -209,10 +212,10 @@ describe('router', function() {
                 buildRouterConfigs: sinon.spy()
             };
             const fakeStateManager = {};
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.stop();
             expect(fakeHistoryManager.stopHistoryUpdates).to.have.property('callCount', 0);
@@ -247,10 +250,10 @@ describe('router', function() {
                 updateState: sinon.stub().returns(fakeRouterState)
             };
             const routeFoundCallback = sinon.spy();
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.start({
                 routeFoundCallback: routeFoundCallback
@@ -287,10 +290,10 @@ describe('router', function() {
                 updateState: sinon.stub().returns(fakeRouterState)
             };
             const routeFoundCallback = sinon.spy();
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.start({
                 routeFoundCallback: routeFoundCallback
@@ -305,12 +308,11 @@ describe('router', function() {
             const fakeHistoryManager = {};
             const fakeConfigManager = {};
             const fakeStateManager = {};
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
-                routeFoundCallback: sinon.spy()
-            });
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
+            );
             expect(function() { router.navigateTo('a.b', {}, {}, {}); }).to.throw('Router is not running');
         });
 		it('should fail if the requested config is unrouted', function() {
@@ -342,10 +344,10 @@ describe('router', function() {
             };
             const routeFoundCallback = sinon.spy();
             const routeNotFoundCallback = sinon.spy();
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.start({
                 routeFoundCallback: routeFoundCallback,
@@ -383,10 +385,10 @@ describe('router', function() {
             const routeFoundCallback = sinon.spy();
             const routeNotFoundCallback = sinon.spy();
             const cancelCallback = sinon.spy();
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.start({
                 routeFoundCallback: routeFoundCallback,
@@ -417,10 +419,10 @@ describe('router', function() {
                 updateState: sinon.spy()
             };
             const routeFoundCallback = sinon.spy();
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.start({
                 routeFoundCallback: routeFoundCallback
@@ -459,10 +461,10 @@ describe('router', function() {
             const routeFoundCallback = sinon.spy();
             const beginCallback = sinon.spy();
             const endCallback = sinon.spy();
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.start({
                 routeFoundCallback: routeFoundCallback,
@@ -504,10 +506,10 @@ describe('router', function() {
             const beginCallback = sinon.spy();
             const cancelCallback = sinon.spy();
             const endCallback = sinon.spy();
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.start({
                 routeFoundCallback: routeFoundCallback,
@@ -527,13 +529,12 @@ describe('router', function() {
             const fakeHistoryManager = {};
             const fakeConfigManager = {};
             const fakeStateManager = {};
-            const router = new routerModule.Router({
-                historyManager: fakeHistoryManager,
-                configManager: fakeConfigManager,
-                stateManager: fakeStateManager,
-                routeFoundCallback: sinon.spy()
-            });
-            return expect(router.updateFromHistory()).to.eventually.rejectedWith('Router is not running');
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
+            );
+            return expect((router as any).updateFromHistory()).to.eventually.rejectedWith('Router is not running');
         });
         it('should report missing URL', function() {
             const fakeHistoryManager = {
@@ -548,16 +549,16 @@ describe('router', function() {
             const fakeStateManager = {};
             const routeFoundCallback = sinon.spy();
             const urlMissingCallback = sinon.spy();
-            const router = new routerModule.Router(
-                fakeHistoryManager,
-                fakeConfigManager,
-                fakeStateManager
+            const router = new Router(
+                fakeHistoryManager as unknown as RouterHistoryManager,
+                fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
             );
             router.start({
                 routeFoundCallback: routeFoundCallback,
                 urlMissingRouteCallback: urlMissingCallback
             });
-            return router.updateFromHistory().catch(function() {
+            return (router as any).updateFromHistory().catch(function() {
                 expect(urlMissingCallback).to.have.property('callCount', 1);
             });
         });
@@ -592,15 +593,15 @@ describe('router', function() {
                     updateState: sinon.stub().returns(fakeRouterState)
                 };
                 const routeFoundCallback = sinon.spy();
-                const router = new routerModule.Router(
-                    fakeHistoryManager,
-                    fakeConfigManager,
-                    fakeStateManager
-                );
+                const router = new Router(
+                    fakeHistoryManager as unknown as RouterHistoryManager,
+                    fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                    fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
+                    );
                 router.start({
                     routeFoundCallback: routeFoundCallback
                 });
-                return router.updateFromHistory().then(function() {
+                return (router as any).updateFromHistory().then(function() {
                     expect(routeFoundCallback).to.have.property('callCount', 1);
                 });
              });
@@ -640,15 +641,15 @@ describe('router', function() {
                     getCurrentState: sinon.stub().returns(fakeRouterState)
                 };
                 const routeFoundCallback = sinon.spy();
-                const router = new routerModule.Router(
-                    fakeHistoryManager,
-                    fakeConfigManager,
-                    fakeStateManager
-                );
+                const router = new Router(
+                    fakeHistoryManager as unknown as RouterHistoryManager,
+                    fakeConfigManager as unknown as RouterConfigManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>,
+                    fakeStateManager as unknown as RouterStateManager<RouterUrlParams, RouterQueryParams, RouterStateData, unknown>
+                    );
                 router.start({
                     routeFoundCallback: routeFoundCallback
                 });
-                return router.updateFromHistory().then(function() {
+                return (router as any).updateFromHistory().then(function() {
                     expect(routeFoundCallback).to.have.property('callCount', 1);
                 });
             });

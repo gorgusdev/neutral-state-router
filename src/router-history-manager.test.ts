@@ -1,13 +1,12 @@
-const chai = require('chai');
-const chaiAsPromised = require('chai-as-promised');
-const expect = chai.expect;
-const sinon = require('sinon');
-const manager = require('../cjs/router-history-manager');
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
+import sinon from 'sinon';
+import { RouterHistoryManager } from './router-history-manager';
 
 chai.use(chaiAsPromised);
 
 describe('router-history-manager', function() {
-    function createManager(hashMode, urlCallback, fakeLocation, fakeHistory, fakeStorage, fakeWindow, maxHistoryEntries, disposeCallback) {
+    function createManager(hashMode: boolean, urlCallback: any, fakeLocation: any, fakeHistory: any, fakeStorage: any, fakeWindow: any, maxHistoryEntries: number | undefined, disposeCallback: any) {
         const defaultUrlCallback = sinon.stub().returns({
             catch: sinon.spy()
         });
@@ -36,7 +35,7 @@ describe('router-history-manager', function() {
         const defaultFakeWindow = {
             addEventListener: sinon.spy()
         };
-        const historyManager = new manager.RouterHistoryManager(
+        const historyManager = new RouterHistoryManager(
             '/a',
             hashMode,
             fakeLocation || defaultFakeLocation,
@@ -67,7 +66,7 @@ describe('router-history-manager', function() {
                 removeEventListener: sinon.spy()
             };
             const historyManager = createManager(true, undefined, undefined, undefined, undefined, fakeWindow, undefined, undefined);
-            historyManager.stopHistoryUpdates(fakeWindow);
+            historyManager.stopHistoryUpdates(fakeWindow as unknown as EventTarget);
             expect(historyManager).to.have.property('updateUrlCallback', undefined);
             expect(fakeWindow.removeEventListener).to.have.property('callCount', 2);
         });
@@ -455,7 +454,7 @@ describe('router-history-manager', function() {
             historyManager.navigateTo('a.c', '/a/c');
             historyManager.navigateTo('a.d', '/a/d');
             historyManager.navigateTo('a.e', '/a/e');
-            historyManager.updateUrlFromPopState();
+            (historyManager as any).updateUrlFromPopState();
             historyManager.navigateTo('a.f', '/a/f');
             expect(disposeCallback).to.have.property('callCount', 2);
             expect(disposeCallback.args[0][0]).to.equal('routerHistoryTrack2');

@@ -1,11 +1,10 @@
-const chai = require('chai');
-const expect = chai.expect;
-const manager = require('../cjs/router-config-extension-manager');
+import chai, { expect } from 'chai';
+import { RouterConfigExtensionManager } from './router-config-extension-manager';
 
 describe('router-config-extension-manager', function() {
     describe('addConfig', function() {
         it('should add a root config', function() {
-            var configManager = new manager.RouterConfigExtensionManager();
+            var configManager = new RouterConfigExtensionManager();
             configManager.addConfig('a', {
                 url: '/'
             });
@@ -13,7 +12,7 @@ describe('router-config-extension-manager', function() {
         });
 
         it('should add a sub config', function() {
-            var configManager = new manager.RouterConfigExtensionManager();
+            var configManager = new RouterConfigExtensionManager();
             configManager.addConfig('a', {
                 url: '/a'
             });
@@ -24,7 +23,7 @@ describe('router-config-extension-manager', function() {
         });
 
         it('should add a root config with a base config path', function() {
-            var configManager = new manager.RouterConfigExtensionManager('pre.fix');
+            var configManager = new RouterConfigExtensionManager('pre.fix');
             configManager.addConfig('pre.fix.a', {
                 url: '/'
             });
@@ -32,7 +31,7 @@ describe('router-config-extension-manager', function() {
         });
 
         it('should add a sub config with a base config path', function() {
-            var configManager = new manager.RouterConfigExtensionManager('pre.fix');
+            var configManager = new RouterConfigExtensionManager('pre.fix');
             configManager.addConfig('pre.fix.a', {
                 url: '/a'
             });
@@ -43,7 +42,7 @@ describe('router-config-extension-manager', function() {
         });
 
         it('should not allow adding with a to short config path', function() {
-            var configManager = new manager.RouterConfigExtensionManager('pre.fix');
+            var configManager = new RouterConfigExtensionManager('pre.fix');
             expect(function() { 
                 configManager.addConfig('pre', {
                     url: '/'
@@ -52,7 +51,7 @@ describe('router-config-extension-manager', function() {
         });
 
         it('should not allow adding with a config path not matching the base config path', function() {
-            var configManager = new manager.RouterConfigExtensionManager('pre.fix');
+            var configManager = new RouterConfigExtensionManager('pre.fix');
             expect(function() {
                 configManager.addConfig('pre.a.b', {
                     url: '/a'

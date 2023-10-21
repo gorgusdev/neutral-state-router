@@ -1,27 +1,26 @@
-const chai = require('chai');
-const chaiAsPromised = require('chai-as-promised');
-const expect = chai.expect;
-const sinon = require('sinon');
-const manager = require('../cjs/router-state-manager');
+import chai, { expect } from 'chai';
+import chaiAsPromised from 'chai-as-promised';
+import sinon from 'sinon';
+import { RouterStateManager } from './router-state-manager';
 
 chai.use(chaiAsPromised);
 
 describe('router-state-manager', function() {
     describe('updateState', function() {
 		it('should build a simple state', function() {
-            var stateManager = new manager.RouterStateManager();
-			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 't1', [{
+            var stateManager = new RouterStateManager();
+			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 1, [{
 				data: {
 					test: 'value'
 				}
-			}], undefined);
+			}], undefined, undefined);
 			expect(state).to.deep.equal({
 				configPath: 'a',
 				url: '/a',
 				urlParams: {},
 				queryParams: {},
 				historyTrackId: 'track1',
-				transitionId: 't1',
+				transitionId: 1,
 				data: {
 					test: 'value'
 				}
@@ -29,19 +28,19 @@ describe('router-state-manager', function() {
 		});
 
 		it('should build a simple state and make it available as current state', function() {
-            var stateManager = new manager.RouterStateManager();
-			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 't1', [{
+            var stateManager = new RouterStateManager();
+			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 1, [{
 				data: {
 					test: 'value'
 				}
-			}], undefined);
+			}], undefined, undefined);
 			expect(stateManager.getCurrentState()).to.deep.equal({
 				configPath: 'a',
 				url: '/a',
 				urlParams: {},
 				queryParams: {},
 				historyTrackId: 'track1',
-				transitionId: 't1',
+				transitionId: 1,
 				data: {
 					test: 'value'
 				}
@@ -49,21 +48,21 @@ describe('router-state-manager', function() {
 		});
 
 		it('should build a simple state with data from extra state data', function() {
-            var stateManager = new manager.RouterStateManager();
-			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 't1', [{
+            var stateManager = new RouterStateManager();
+			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 1, [{
 				data: {
 					test: 'value'
 				}
 			}], {
 				test2: 'value2'
-			});
+			}, undefined);
 			expect(state).to.deep.equal({
 				configPath: 'a',
 				url: '/a',
 				urlParams: {},
 				queryParams: {},
 				historyTrackId: 'track1',
-				transitionId: 't1',
+				transitionId: 1,
 				data: {
 					test: 'value',
 					test2: 'value2'
@@ -72,8 +71,8 @@ describe('router-state-manager', function() {
 		});
 
 		it('should build a state by merging data from multiple configs', function() {
-            var stateManager = new manager.RouterStateManager();
-			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 't1', [{
+            var stateManager = new RouterStateManager();
+			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 1, [{
 				data: {
 					test: 'value'
 				}
@@ -81,14 +80,14 @@ describe('router-state-manager', function() {
 				data: {
 					test2: 'value2'
 				}
-			}], undefined);
+			}], undefined, undefined);
 			expect(state).to.deep.equal({
 				configPath: 'a',
 				url: '/a',
 				urlParams: {},
 				queryParams: {},
 				historyTrackId: 'track1',
-				transitionId: 't1',
+				transitionId: 1,
 				data: {
 					test: 'value',
 					test2: 'value2'
@@ -97,7 +96,7 @@ describe('router-state-manager', function() {
 		});
 
 		it('should rebuild a state by adding and removing data from multiple configs', function() {
-			var stateManager = new manager.RouterStateManager();
+			var stateManager = new RouterStateManager();
 			var config1 = {
 				data: {
 					test1: 'value1'
@@ -113,15 +112,15 @@ describe('router-state-manager', function() {
 					test3: 'value3'
 				}
 			};
-			stateManager.updateState('a', '/a', {}, {}, 'track1', 't1', [config1, config2], undefined);
-			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 't1', [config1, config3], undefined);
+			stateManager.updateState('a', '/a', {}, {}, 'track1', 1, [config1, config2], undefined, undefined);
+			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 1, [config1, config3], undefined, undefined);
 			expect(state).to.deep.equal({
 				configPath: 'a',
 				url: '/a',
 				urlParams: {},
 				queryParams: {},
 				historyTrackId: 'track1',
-				transitionId: 't1',
+				transitionId: 1,
 				data: {
 					test1: 'value1',
 					test3: 'value3'
@@ -130,7 +129,7 @@ describe('router-state-manager', function() {
 		});
 
 		it('should use refresh, setup and teardown callbacks to create the state', function() {
-			var stateManager = new manager.RouterStateManager();
+			var stateManager = new RouterStateManager();
 			var refreshCallback = sinon.stub().returns({ refresh: 'refresh' });
 			var config1 = {
 				refreshCallback: refreshCallback,
@@ -152,15 +151,15 @@ describe('router-state-manager', function() {
 					test3: 'value3'
 				}
 			};
-			stateManager.updateState('a', '/a', {}, {}, 'track1', 't1', [config1, config2], undefined);
-			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 't1', [config1, config3], undefined);
+			stateManager.updateState('a', '/a', {}, {}, 'track1', 1, [config1, config2], undefined, undefined);
+			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 1, [config1, config3], undefined, undefined);
 			expect(state).to.deep.equal({
 				configPath: 'a',
 				url: '/a',
 				urlParams: {},
 				queryParams: {},
 				historyTrackId: 'track1',
-				transitionId: 't1',
+				transitionId: 1,
 				data: {
 					refresh: 'refresh',
 					setup: 'setup'
@@ -172,9 +171,9 @@ describe('router-state-manager', function() {
 		});
 
 		it('should not merge non inherited data properties from parent configs', function() {
-			var stateManager = new manager.RouterStateManager();
+			var stateManager = new RouterStateManager();
 			stateManager.setNonInheritedStateDataPropNames(['test1']);
-			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 't1', [{
+			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 1, [{
 				data: {
 					test1: 'value1'
 				}
@@ -182,14 +181,14 @@ describe('router-state-manager', function() {
 				data: {
 					test2: 'value2'
 				}
-			}], undefined);
+			}], undefined, undefined);
 			expect(state).to.deep.equal({
 				configPath: 'a',
 				url: '/a',
 				urlParams: {},
 				queryParams: {},
 				historyTrackId: 'track1',
-				transitionId: 't1',
+				transitionId: 1,
 				data: {
 					test2: 'value2'
 				}
@@ -197,9 +196,9 @@ describe('router-state-manager', function() {
 		});
 
 		it('should concat accumulated properties from all configs', function() {
-			var stateManager = new manager.RouterStateManager();
+			var stateManager = new RouterStateManager();
 			stateManager.setAccumulatedStateDataPropNames(['test1']);
-			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 't1', [{
+			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 1, [{
 				data: {
 					test1: 'value1'
 				}
@@ -207,14 +206,14 @@ describe('router-state-manager', function() {
 				data: {
 					test1: 'value2'
 				}
-			}], undefined);
+			}], undefined, undefined);
 			expect(state).to.deep.equal({
 				configPath: 'a',
 				url: '/a',
 				urlParams: {},
 				queryParams: {},
 				historyTrackId: 'track1',
-				transitionId: 't1',
+				transitionId: 1,
 				data: {
 					test1: ['value1', 'value2']
 				}
@@ -222,8 +221,8 @@ describe('router-state-manager', function() {
 		});
 
 		it('should accumulated properties that start with a plus character from all configs', function() {
-			var stateManager = new manager.RouterStateManager();
-			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 't1', [{
+			var stateManager = new RouterStateManager();
+			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 1, [{
 				data: {
 					'+test1': 'value1'
 				}
@@ -231,14 +230,14 @@ describe('router-state-manager', function() {
 				data: {
 					'+test1': 'value2'
 				}
-			}], undefined);
+			}], undefined, undefined);
 			expect(state).to.deep.equal({
 				configPath: 'a',
 				url: '/a',
 				urlParams: {},
 				queryParams: {},
 				historyTrackId: 'track1',
-				transitionId: 't1',
+				transitionId: 1,
 				data: {
 					test1: ['value1', 'value2']
 				}
@@ -246,9 +245,9 @@ describe('router-state-manager', function() {
 		});
 
 		it('should flatten arrays in accumulated properties from all configs', function() {
-			var stateManager = new manager.RouterStateManager();
+			var stateManager = new RouterStateManager();
 			stateManager.setAccumulatedStateDataPropNames(['test1']);
-			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 't1', [{
+			var state = stateManager.updateState('a', '/a', {}, {}, 'track1', 1, [{
 				data: {
 					test1: 'value1'
 				}
@@ -256,14 +255,14 @@ describe('router-state-manager', function() {
 				data: {
 					test1: ['value2', 'value3']
 				}
-			}], undefined);
+			}], undefined, undefined);
 			expect(state).to.deep.equal({
 				configPath: 'a',
 				url: '/a',
 				urlParams: {},
 				queryParams: {},
 				historyTrackId: 'track1',
-				transitionId: 't1',
+				transitionId: 1,
 				data: {
 					test1: ['value1', 'value2', 'value3']
 				}

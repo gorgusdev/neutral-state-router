@@ -1,7 +1,7 @@
 // Copyright (c) 2018 Göran Gustafsson. All rights reserved.
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-import * as queryString from 'query-string';
+import queryString from 'query-string';
 import urllite from 'urllite';
 import { RouterUrlParams, RouterQueryParams, RouterStateData } from './router-types';
 import { RouterConfig, RouterState } from './router-types';
